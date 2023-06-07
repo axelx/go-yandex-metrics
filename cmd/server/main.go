@@ -26,7 +26,7 @@ func (m *MemStorage) gauge(nameMetric, data string) error {
 		m.Gauge[nameMetric] = f
 		return nil
 	}
-	return errors.New("Ошибка обработки параметра gauge")
+	return errors.New("ошибка обработки параметра gauge")
 }
 
 func (m *MemStorage) count(nameMetric, data string) error {
@@ -36,14 +36,13 @@ func (m *MemStorage) count(nameMetric, data string) error {
 		m.Counter[nameMetric] += i
 		return nil
 	}
-	return errors.New("Ошибка обработки параметра counter " + nameMetric)
+	return errors.New("ошибка обработки параметра counter " + nameMetric)
 }
 
 func updMem(m Keeper) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
-		b := fmt.Sprintf("%s", req.URL)
-		s := strings.Split(b, "/")
+		s := strings.Split(req.URL.String(), "/")
 
 		// s[2] <ТИП_МЕТРИКИ>  s[3] <ИМЯ_МЕТРИКИ> s[4] <ЗНАЧЕНИЕ_МЕТРИКИ>
 		if cap(s) != 5 {
