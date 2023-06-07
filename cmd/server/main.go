@@ -9,7 +9,7 @@ import (
 
 func main() {
 	storage.StorageTest()
-	m := storage.MemStorage{map[string]float64{}, map[string]int64{}}
+	m := storage.MemStorage{Gauge: map[string]float64{}, Counter: map[string]int64{}}
 
 	fmt.Println(m)
 	mux := http.NewServeMux()
