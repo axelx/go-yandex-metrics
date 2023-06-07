@@ -50,13 +50,13 @@ func updMem(m Keeper) http.HandlerFunc {
 		if s[2] == "gauge" {
 			err := m.gauge(s[3], s[4])
 			if err != nil {
-				http.Error(res, fmt.Sprint(err), http.StatusNotFound)
+				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
 			}
 		} else if s[2] == "counter" {
 			err := m.count(s[3], s[4])
 			if err != nil {
-				http.Error(res, fmt.Sprint(err), http.StatusNotFound)
+				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
 			}
 		} else {
