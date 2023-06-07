@@ -21,8 +21,7 @@ type Keeper interface {
 }
 
 func (m *MemStorage) gauge(nameMetric, data string) error {
-	_, b := m.Gauge[nameMetric]
-	if f, err := strconv.ParseFloat(data, 64); err == nil && b {
+	if f, err := strconv.ParseFloat(data, 64); err == nil {
 		m.Gauge[nameMetric] = f
 		return nil
 	}
@@ -30,9 +29,7 @@ func (m *MemStorage) gauge(nameMetric, data string) error {
 }
 
 func (m *MemStorage) count(nameMetric, data string) error {
-	_, b := m.Counter[nameMetric]
-
-	if i, err := strconv.ParseInt(data, 10, 64); err == nil && b {
+	if i, err := strconv.ParseInt(data, 10, 64); err == nil {
 		m.Counter[nameMetric] += i
 		return nil
 	}
@@ -81,15 +78,7 @@ func (m MemStorage) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	m := MemStorage{map[string]float64{
-		"someMetric":  10.00,
-		"Alloc":       10,
-		"BuckHashSys": 10,
-		"TotalAlloc":  1,
-	}, map[string]int64{
-		"someMetric": 0,
-		"PollCount":  0,
-	}}
+	m := MemStorage{map[string]float64{}, map[string]int64{}}
 
 	fmt.Println(m)
 	mux := http.NewServeMux()
