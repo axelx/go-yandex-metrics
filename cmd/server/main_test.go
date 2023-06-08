@@ -44,8 +44,8 @@ func TestUpdMem(t *testing.T) {
 
 			res := w.Result()
 
-			userResult, err := io.ReadAll(res.Body)
-			fmt.Println(string(userResult), err)
+			userResult, _ := io.ReadAll(res.Body)
+			res.Body.Close()
 
 			// проверяем код ответа
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
