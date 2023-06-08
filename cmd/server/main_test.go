@@ -25,7 +25,6 @@ func TestUpdMem(t *testing.T) {
 		want    want
 		request string
 	}{
-		// TODO: Add test cases.
 		{
 			name:    "first",
 			args:    storage.MemStorage{Gauge: map[string]float64{}, Counter: map[string]int64{}},
