@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -35,7 +35,7 @@ func reportMetrics(metrics *[]string) {
 			if err != nil {
 				fmt.Println("Error reporting metrics:", err)
 			} else {
-				body, _ := ioutil.ReadAll(resp.Body)
+				body, _ := io.ReadAll(resp.Body)
 				resp.Body.Close()
 				fmt.Printf("Metrics sent successfully! Response body: %s\n", body)
 			}
