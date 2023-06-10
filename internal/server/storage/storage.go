@@ -27,6 +27,27 @@ func (m *MemStorage) SetCounter(nameMetric, data string) error {
 	return errors.New("ошибка обработки параметра counter " + nameMetric)
 }
 
+func (m *MemStorage) GetMetric(typeMetric, nameMetric string) (string, error) {
+	err := errors.New("не найдена метрика")
+	switch typeMetric {
+	case "gauge":
+		v, t := m.Gauge[nameMetric]
+		if !t {
+			return "", err
+		}
+		return fmt.Sprintf("%f", v), nil
+	case "counter":
+		fmt.Println("909090909", m, m.Counter[nameMetric], strconv.FormatInt(m.Counter[nameMetric], 10), "--")
+		v, t := m.Counter[nameMetric]
+		if !t {
+			return "", err
+		}
+		return strconv.FormatInt(v, 10), nil
+	default:
+		return "метрика не найдена", err
+	}
+}
+
 func StorageTest() {
 	fmt.Println("Storage test")
 }
