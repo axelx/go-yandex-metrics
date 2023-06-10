@@ -5,7 +5,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"html/template"
 	"net/http"
-	"strings"
 )
 
 type Keeper interface {
@@ -19,10 +18,10 @@ func UpdatedMetric(m Keeper) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		typeM := chi.URLParam(req, "typeM")
 		nameM := chi.URLParam(req, "nameM")
-		valueM := chi.URLParam(req, "nameM")
 
-		s := strings.Split(req.URL.String(), "/")
-		fmt.Println(typeM, nameM, valueM)
+		valueM := chi.URLParam(req, "valueM")
+
+		fmt.Println("===", typeM, nameM, valueM)
 
 		if typeM == "" || nameM == "" || valueM == "" {
 			fmt.Println("=====")
@@ -31,13 +30,13 @@ func UpdatedMetric(m Keeper) http.HandlerFunc {
 		}
 		switch typeM {
 		case "gauge":
-			err := m.SetGauge(s[3], s[4])
+			err := m.SetGauge(nameM, valueM)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
 			}
 		case "counter":
-			err := m.SetCounter(s[3], s[4])
+			err := m.SetCounter(nameM, valueM)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
@@ -48,8 +47,7 @@ func UpdatedMetric(m Keeper) http.HandlerFunc {
 		}
 		fmt.Println(m)
 
-		body := fmt.Sprintf("Метрика тип %s название %s обновлена %v\r\n", s[2], s[3], s[4])
-		res.Write([]byte(body))
+		res.Write([]byte(valueM))
 
 		res.WriteHeader(http.StatusOK)
 	}

@@ -43,6 +43,7 @@ func TestGetMetric(t *testing.T) {
 	}
 	for _, v := range testTable {
 		resp, get := testRequest(t, ts, "GET", v.url)
+		defer resp.Body.Close()
 		assert.Equal(t, v.status, resp.StatusCode)
 		assert.Equal(t, v.want, get)
 	}
@@ -72,13 +73,14 @@ func TestUpdatedMetric(t *testing.T) {
 		{
 			name:    "first",
 			args:    storage.MemStorage{Gauge: map[string]float64{}, Counter: map[string]int64{}},
-			want:    want{statusCode: 200, data: "Метрика тип counter название PollCount обновлена 5\r\n"},
+			want:    want{statusCode: 200, data: "5"},
 			request: "/update/counter/PollCount/5",
 		},
 	}
 
 	for _, v := range tests {
 		resp, post := testRequest(t, ts, "POST", v.request)
+		defer resp.Body.Close()
 		assert.Equal(t, v.want.statusCode, resp.StatusCode)
 		assert.Equal(t, v.want.data, post)
 	}
