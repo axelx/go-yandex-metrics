@@ -35,7 +35,7 @@ func (m *MemStorage) GetMetric(typeMetric, nameMetric string) (string, error) {
 		if !t {
 			return "", err
 		}
-		return fmt.Sprintf("%f", v), nil
+		return fmt.Sprintf("%.3f", v), nil
 	case "counter":
 		v, t := m.Counter[nameMetric]
 		if !t {
