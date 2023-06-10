@@ -69,8 +69,7 @@ func GetMetric(m Keeper) http.HandlerFunc {
 			return
 		}
 
-		body := fmt.Sprintf("Метрика тип %s название %s равна %v\r\n", typeM, nameM, metric)
-		res.Write([]byte(body))
+		res.Write([]byte(metric))
 
 		res.WriteHeader(http.StatusOK)
 	}

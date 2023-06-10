@@ -38,8 +38,8 @@ func TestGetMetric(t *testing.T) {
 		want   string
 		status int
 	}{
-		{"/value/counter/PollCount", "Метрика тип counter название PollCount равна 5\r\n", http.StatusOK},
-		{"/value/gauge/HeapAlloc", "Метрика тип gauge название HeapAlloc равна 5.500000\r\n", http.StatusOK},
+		{"/value/counter/PollCount", "5", http.StatusOK},
+		{"/value/gauge/HeapAlloc", "5.500000", http.StatusOK},
 	}
 	for _, v := range testTable {
 		resp, get := testRequest(t, ts, "GET", v.url)
