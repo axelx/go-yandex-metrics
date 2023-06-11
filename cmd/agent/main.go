@@ -9,17 +9,21 @@ import (
 	"time"
 )
 
-const (
-	baseURL         = "http://localhost:8080/update/"
+var (
+	client          = &http.Client{}
+	baseURL         = ""
 	reportFrequency = 10
 	pollFrequency   = 2
 )
 
-var (
-	client = &http.Client{}
-)
-
 func main() {
+	// обрабатываем аргументы командной строки
+	parseFlags()
+	baseURL = "http://localhost" + flagRunAddr + "/update/"
+	reportFrequency = flagReportFrequency
+	pollFrequency = flagPollFrequency
+
+	fmt.Println("Running server on", baseURL, reportFrequency, pollFrequency)
 
 	var metrics []string
 
@@ -42,7 +46,7 @@ func reportMetrics(metrics *[]string) {
 		}
 
 		fmt.Println("readMetrics ", *metrics)
-		time.Sleep(reportFrequency * time.Second)
+		time.Sleep(time.Duration(reportFrequency) * time.Second)
 	}
 }
 
@@ -80,7 +84,7 @@ func pollMetrics(metrics *[]string) {
 		*metrics = append(*metrics, urlReportMetric("counter", "PollCount", PollCount))
 
 		PollCount += 1
-		time.Sleep(pollFrequency * time.Second)
+		time.Sleep(time.Duration(pollFrequency) * time.Second)
 	}
 }
 
