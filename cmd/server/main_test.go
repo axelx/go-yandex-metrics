@@ -39,7 +39,7 @@ func TestGetMetric(t *testing.T) {
 		status int
 	}{
 		{"/value/counter/PollCount", "5", http.StatusOK},
-		{"/value/gauge/HeapAlloc", "5.500", http.StatusOK},
+		{"/value/gauge/HeapAlloc", "5.5", http.StatusOK},
 	}
 	for _, v := range testTable {
 		resp, get := testRequest(t, ts, "GET", v.url)
