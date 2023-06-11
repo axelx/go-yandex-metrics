@@ -19,7 +19,7 @@ var (
 func main() {
 	// обрабатываем аргументы командной строки
 	parseFlags()
-	baseURL = "http://localhost" + flagRunAddr + "/update/"
+	baseURL = "http://" + flagRunAddr + "/update/"
 	reportFrequency = flagReportFrequency
 	pollFrequency = flagPollFrequency
 

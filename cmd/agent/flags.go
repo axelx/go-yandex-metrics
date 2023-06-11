@@ -14,7 +14,7 @@ var flagPollFrequency int
 func parseFlags() {
 	// регистрируем переменную flagRunAddr
 	// как аргумент -a со значением :8080 по умолчанию
-	flag.StringVar(&flagRunAddr, "a", ":8080", "address and port to run server")
+	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.IntVar(&flagReportFrequency, "r", 10, "report frequency to run server")
 	flag.IntVar(&flagPollFrequency, "p", 2, "poll frequency")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
