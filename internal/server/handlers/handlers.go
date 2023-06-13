@@ -5,26 +5,37 @@ import (
 	"github.com/go-chi/chi/v5"
 	"html/template"
 	"internal/service"
-	"internal/storage"
 	"net/http"
 )
 
-type Keeper interface {
+type keeper interface {
 	SetGauge(string, float64) error
 	SetCounter(string, int64) error
 	GetMetric(string, string) (string, error)
+	GetGaugeMetric() map[string]float64
+	GetCounterMetric() map[string]int64
 }
 
-func Router(m storage.MemStorage) chi.Router {
+type handler struct {
+	memStorage keeper
+}
+
+func New(k keeper) handler {
+	return handler{
+		memStorage: k,
+	}
+}
+
+func (h *handler) Router() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/", GetAllMetrics(&m))
-	r.Get("/value/{typeM}/{nameM}", GetMetric(&m))
-	r.Post("/update/{typeM}/{nameM}/{valueM}", UpdatedMetric(&m))
+	r.Get("/", h.GetAllMetrics())
+	r.Post("/update/{typeM}/{nameM}/{valueM}", h.UpdatedMetric())
+	r.Get("/value/{typeM}/{nameM}", h.GetMetric())
 	return r
 }
 
-func UpdatedMetric(m Keeper) http.HandlerFunc {
+func (h *handler) UpdatedMetric() http.HandlerFunc {
 	fmt.Println("UpdatedMetric for test   111")
 	return func(res http.ResponseWriter, req *http.Request) {
 		typeM := chi.URLParam(req, "typeM")
@@ -32,10 +43,7 @@ func UpdatedMetric(m Keeper) http.HandlerFunc {
 
 		valueM := chi.URLParam(req, "valueM")
 
-		fmt.Println("===", typeM, nameM, valueM)
-
 		if typeM == "" || nameM == "" || valueM == "" {
-			fmt.Println("=====")
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
 		}
@@ -46,7 +54,7 @@ func UpdatedMetric(m Keeper) http.HandlerFunc {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
 			}
-			err = m.SetGauge(nameM, val)
+			err = h.memStorage.SetGauge(nameM, val)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
@@ -57,7 +65,7 @@ func UpdatedMetric(m Keeper) http.HandlerFunc {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
 			}
-			err = m.SetCounter(nameM, i)
+			err = h.memStorage.SetCounter(nameM, i)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
@@ -66,7 +74,6 @@ func UpdatedMetric(m Keeper) http.HandlerFunc {
 			http.Error(res, "StatusBadRequest", http.StatusBadRequest)
 			return
 		}
-		fmt.Println(m)
 
 		res.Write([]byte(valueM))
 
@@ -74,7 +81,7 @@ func UpdatedMetric(m Keeper) http.HandlerFunc {
 	}
 }
 
-func GetMetric(m Keeper) http.HandlerFunc {
+func (h *handler) GetMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		typeM := chi.URLParam(req, "typeM")
 		nameM := chi.URLParam(req, "nameM")
@@ -84,7 +91,7 @@ func GetMetric(m Keeper) http.HandlerFunc {
 			return
 		}
 
-		metric, err := m.GetMetric(typeM, nameM)
+		metric, err := h.memStorage.GetMetric(typeM, nameM)
 		if err != nil {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
@@ -96,9 +103,15 @@ func GetMetric(m Keeper) http.HandlerFunc {
 	}
 }
 
-func GetAllMetrics(m Keeper) http.HandlerFunc {
+func (h *handler) GetAllMetrics() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		tmpl := template.Must(template.ParseFiles("../../internal/server/handlers/layout.html"))
-		tmpl.Execute(res, m)
+		tmpl.Execute(res, struct {
+			Gauge   map[string]float64
+			Counter map[string]int64
+		}{
+			Gauge:   h.memStorage.GetGaugeMetric(),
+			Counter: h.memStorage.GetCounterMetric(),
+		})
 	}
 }

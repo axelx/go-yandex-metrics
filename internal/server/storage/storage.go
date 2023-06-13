@@ -47,3 +47,10 @@ func (m *MemStorage) GetMetric(typeMetric, nameMetric string) (string, error) {
 		return "метрика не найдена", err
 	}
 }
+
+func (m *MemStorage) GetGaugeMetric() map[string]float64 {
+	return m.gauge
+}
+func (m *MemStorage) GetCounterMetric() map[string]int64 {
+	return m.counter
+}

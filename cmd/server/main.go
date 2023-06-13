@@ -11,13 +11,13 @@ import (
 func main() {
 	metricStorage := storage.NewStorage()
 	conf := config.NewConfigServerFlag()
-
-	// обрабатываем аргументы командной строки
 	parseFlags(&conf)
 
 	fmt.Println("Running server on", conf.FlagRunAddr)
 
-	err := http.ListenAndServe(conf.FlagRunAddr, handlers.Router(metricStorage))
+	hd := handlers.New(&metricStorage)
+	err := http.ListenAndServe(conf.FlagRunAddr, hd.Router())
+
 	if err != nil {
 		fmt.Println(err)
 		panic(err)

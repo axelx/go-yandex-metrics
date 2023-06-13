@@ -30,7 +30,8 @@ func TestGetMetric(t *testing.T) {
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
-	ts := httptest.NewServer(handlers.Router(m))
+	hd := handlers.New(&m)
+	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
 	var testTable = []struct {
@@ -50,12 +51,12 @@ func TestGetMetric(t *testing.T) {
 }
 
 func TestUpdatedMetric(t *testing.T) {
-
 	m := storage.NewStorage()
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
-	ts := httptest.NewServer(handlers.Router(m))
+	hd := handlers.New(&m)
+	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
 	type want struct {
