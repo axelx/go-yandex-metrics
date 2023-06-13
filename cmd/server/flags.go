@@ -15,4 +15,4 @@ func parseFlags(c *config.ConfigServerFlag) {
 	}
 }
 
-//ADDRESS=localhost:8082 go run . -a localhost:8081
+//ADDRESS=localhost:8080 go run . -a localhost:8081

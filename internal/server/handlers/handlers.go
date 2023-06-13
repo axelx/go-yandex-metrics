@@ -42,6 +42,10 @@ func UpdatedMetric(m Keeper) http.HandlerFunc {
 		switch typeM {
 		case "gauge":
 			val, err := service.PrepareFloat64Data(valueM)
+			if err != nil {
+				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
+				return
+			}
 			err = m.SetGauge(nameM, val)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
@@ -49,6 +53,10 @@ func UpdatedMetric(m Keeper) http.HandlerFunc {
 			}
 		case "counter":
 			i, err := service.PrepareInt64Data(valueM)
+			if err != nil {
+				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
+				return
+			}
 			err = m.SetCounter(nameM, i)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
