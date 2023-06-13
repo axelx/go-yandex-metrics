@@ -44,8 +44,6 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 	PollCount := 0
 	maxCycle := c.ReportFrequency / c.PollFrequency
 
-	fmt.Println("POLL : ", c.ReportFrequency, c.PollFrequency, maxCycle, float64(PollCount))
-
 	for {
 		runtime.ReadMemStats(mem)
 

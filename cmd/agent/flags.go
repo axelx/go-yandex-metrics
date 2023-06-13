@@ -2,14 +2,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"internal/config"
 	"os"
 	"strconv"
 )
 
 func parseFlags(c *config.ConfigAgentFlag) {
-	fmt.Println("hello parseFlags ------- ")
 
 	flag.StringVar(&c.FlagServerAddr, "a", "localhost:8080", "address and port to run server")
 	flag.IntVar(&c.FlagReportFrequency, "r", 10, "report frequency to run server")

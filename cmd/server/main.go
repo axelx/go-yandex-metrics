@@ -19,7 +19,6 @@ func main() {
 	err := http.ListenAndServe(conf.FlagRunAddr, hd.Router())
 
 	if err != nil {
-		fmt.Println(err)
 		panic(err)
 	}
 }

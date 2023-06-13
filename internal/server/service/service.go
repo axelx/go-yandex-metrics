@@ -2,13 +2,8 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 )
-
-func TestService() {
-	fmt.Println("TestService test")
-}
 
 func PrepareFloat64Data(data string) (float64, error) {
 	f, err := strconv.ParseFloat(data, 64)

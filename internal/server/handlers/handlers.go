@@ -36,7 +36,6 @@ func (h *handler) Router() chi.Router {
 }
 
 func (h *handler) UpdatedMetric() http.HandlerFunc {
-	fmt.Println("UpdatedMetric for test   111")
 	return func(res http.ResponseWriter, req *http.Request) {
 		typeM := chi.URLParam(req, "typeM")
 		nameM := chi.URLParam(req, "nameM")
