@@ -2,17 +2,16 @@ package main
 
 import (
 	"flag"
+	"internal/config"
 	"os"
 )
 
-var flagRunAddr string
-
-func parseFlags() {
-	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
+func parseFlags(c *config.ConfigServerFlag) {
+	flag.StringVar(&c.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
-		flagRunAddr = envRunAddr
+		c.FlagRunAddr = envRunAddr
 	}
 }
 

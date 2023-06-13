@@ -4,13 +4,24 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"html/template"
+	"internal/service"
+	"internal/storage"
 	"net/http"
 )
 
 type Keeper interface {
-	SetGauge(string, string) error
-	SetCounter(string, string) error
+	SetGauge(string, float64) error
+	SetCounter(string, int64) error
 	GetMetric(string, string) (string, error)
+}
+
+func Router(m storage.MemStorage) chi.Router {
+	r := chi.NewRouter()
+
+	r.Get("/", GetAllMetrics(&m))
+	r.Get("/value/{typeM}/{nameM}", GetMetric(&m))
+	r.Post("/update/{typeM}/{nameM}/{valueM}", UpdatedMetric(&m))
+	return r
 }
 
 func UpdatedMetric(m Keeper) http.HandlerFunc {
@@ -30,13 +41,15 @@ func UpdatedMetric(m Keeper) http.HandlerFunc {
 		}
 		switch typeM {
 		case "gauge":
-			err := m.SetGauge(nameM, valueM)
+			val, err := service.PrepareFloat64Data(valueM)
+			err = m.SetGauge(nameM, val)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
 			}
 		case "counter":
-			err := m.SetCounter(nameM, valueM)
+			i, err := service.PrepareInt64Data(valueM)
+			err = m.SetCounter(nameM, i)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return

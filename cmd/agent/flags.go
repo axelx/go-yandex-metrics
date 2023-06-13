@@ -2,33 +2,32 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"internal/config"
 	"os"
 	"strconv"
 )
 
-var flagServerAddr string
-var flagReportFrequency int
-var flagPollFrequency int
+func parseFlags(c *config.ConfigAgentFlag) {
+	fmt.Println("hello parseFlags ------- ")
 
-func parseFlags() {
-	flag.StringVar(&flagServerAddr, "a", "localhost:8080", "address and port to run server")
-	flag.IntVar(&flagReportFrequency, "r", 10, "report frequency to run server")
-	flag.IntVar(&flagPollFrequency, "p", 2, "poll frequency")
-	// парсим переданные серверу аргументы в зарегистрированные переменные
+	flag.StringVar(&c.FlagServerAddr, "a", "localhost:8080", "address and port to run server")
+	flag.IntVar(&c.FlagReportFrequency, "r", 10, "report frequency to run server")
+	flag.IntVar(&c.FlagPollFrequency, "p", 2, "poll frequency")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
-		flagServerAddr = envRunAddr
+		c.FlagServerAddr = envRunAddr
 
 	}
 	if envReportFrequency := os.Getenv("REPORT_INTERVAL"); envReportFrequency != "" {
 		if v, err := strconv.Atoi(envReportFrequency); err == nil {
-			flagReportFrequency = v
+			c.FlagReportFrequency = v
 		}
 	}
 	if envPollFrequency := os.Getenv("POLL_INTERVAL"); envPollFrequency != "" {
 		if v, err := strconv.Atoi(envPollFrequency); err == nil {
-			flagPollFrequency = v
+			c.FlagPollFrequency = v
 		}
 	}
 }

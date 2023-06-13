@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"internal/handlers"
 	"internal/storage"
 	"io"
 	"net/http"
@@ -26,11 +26,11 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 }
 
 func TestGetMetric(t *testing.T) {
-	m := storage.MemStorage{
-		Gauge:   map[string]float64{"HeapAlloc": 5.5},
-		Counter: map[string]int64{"PollCount": 5},
-	}
-	ts := httptest.NewServer(router(m))
+	m := storage.NewStorage()
+	m.SetGauge("HeapAlloc", 5.5)
+	m.SetCounter("PollCount", 5)
+
+	ts := httptest.NewServer(handlers.Router(m))
 	defer ts.Close()
 
 	var testTable = []struct {
@@ -50,14 +50,12 @@ func TestGetMetric(t *testing.T) {
 }
 
 func TestUpdatedMetric(t *testing.T) {
-	fmt.Println("Hello test")
-	storage.StorageTest()
 
-	m := storage.MemStorage{
-		Gauge:   map[string]float64{"HeapAlloc": 5.5},
-		Counter: map[string]int64{"PollCount": 5},
-	}
-	ts := httptest.NewServer(router(m))
+	m := storage.NewStorage()
+	m.SetGauge("HeapAlloc", 5.5)
+	m.SetCounter("PollCount", 5)
+
+	ts := httptest.NewServer(handlers.Router(m))
 	defer ts.Close()
 
 	type want struct {
@@ -72,7 +70,7 @@ func TestUpdatedMetric(t *testing.T) {
 	}{
 		{
 			name:    "first",
-			args:    storage.MemStorage{Gauge: map[string]float64{}, Counter: map[string]int64{}},
+			args:    m,
 			want:    want{statusCode: 200, data: "5"},
 			request: "/update/counter/PollCount/5",
 		},
