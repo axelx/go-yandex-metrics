@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/axelx/go-yandex-metrics/internal/server/handlers"
+	"github.com/axelx/go-yandex-metrics/internal/server/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"internal/handlers"
-	"internal/storage"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -26,7 +26,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 }
 
 func TestGetMetric(t *testing.T) {
-	m := storage.NewStorage()
+	m := storage.New()
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
@@ -51,7 +51,7 @@ func TestGetMetric(t *testing.T) {
 }
 
 func TestUpdatedMetric(t *testing.T) {
-	m := storage.NewStorage()
+	m := storage.New()
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
