@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/axelx/go-yandex-metrics/internal/server/service"
 	"github.com/go-chi/chi/v5"
 	"html/template"
-	"internal/service"
 	"net/http"
 )
 

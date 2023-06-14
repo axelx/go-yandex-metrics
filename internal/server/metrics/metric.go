@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"fmt"
-	"internal/config"
+	"github.com/axelx/go-yandex-metrics/internal/server/config"
 	"io"
 	"math/rand"
 	"runtime"

@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"internal/config"
-	"internal/handlers"
-	"internal/storage"
+	"github.com/axelx/go-yandex-metrics/internal/server/config"
+	"github.com/axelx/go-yandex-metrics/internal/server/handlers"
+	"github.com/axelx/go-yandex-metrics/internal/server/storage"
 	"net/http"
 )
 
