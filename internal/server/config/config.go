@@ -1,14 +1,18 @@
 package config
 
-import "net/http"
+import (
+	"flag"
+	"net/http"
+	"os"
+	"strconv"
+)
+
+// AGENT
 
 type ConfigAgentFlag struct {
 	FlagServerAddr      string
 	FlagReportFrequency int
 	FlagPollFrequency   int
-}
-type ConfigServerFlag struct {
-	FlagRunAddr string
 }
 
 type ConfigAgent struct {
@@ -18,24 +22,18 @@ type ConfigAgent struct {
 	PollFrequency   int
 }
 
-func NewConfigServerFlag() ConfigServerFlag {
-	return ConfigServerFlag{
-		FlagRunAddr: "",
-	}
-}
+func NewConfigAgent() ConfigAgent {
 
-func NewConfigAgentFlag() ConfigAgentFlag {
-	return ConfigAgentFlag{
+	cf := ConfigAgentFlag{
 		FlagServerAddr:      "",
 		FlagReportFrequency: 1,
 		FlagPollFrequency:   1,
 	}
-}
+	parseFlagsAgent(&cf)
 
-func NewConfigAgent(cf ConfigAgentFlag) ConfigAgent {
 	confDefault := ConfigAgent{
 		Client:          &http.Client{},
-		BaseURL:         "",
+		BaseURL:         "http://localhost:8080/update/",
 		ReportFrequency: 10,
 		PollFrequency:   2,
 	}
@@ -50,4 +48,51 @@ func NewConfigAgent(cf ConfigAgentFlag) ConfigAgent {
 		confDefault.PollFrequency = cf.FlagPollFrequency
 	}
 	return confDefault
+}
+
+func parseFlagsAgent(c *ConfigAgentFlag) {
+
+	flag.StringVar(&c.FlagServerAddr, "a", "localhost:8080", "address and port to run server")
+	flag.IntVar(&c.FlagReportFrequency, "r", 10, "report frequency to run server")
+	flag.IntVar(&c.FlagPollFrequency, "p", 2, "poll frequency")
+	flag.Parse()
+
+	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
+		c.FlagServerAddr = envRunAddr
+
+	}
+	if envReportFrequency := os.Getenv("REPORT_INTERVAL"); envReportFrequency != "" {
+		if v, err := strconv.Atoi(envReportFrequency); err == nil {
+			c.FlagReportFrequency = v
+		}
+	}
+	if envPollFrequency := os.Getenv("POLL_INTERVAL"); envPollFrequency != "" {
+		if v, err := strconv.Atoi(envPollFrequency); err == nil {
+			c.FlagPollFrequency = v
+		}
+	}
+}
+
+//SERVER
+
+type ConfigServerFlag struct {
+	FlagRunAddr string
+}
+
+func NewConfigServer() ConfigServerFlag {
+	conf := ConfigServerFlag{
+		FlagRunAddr: "",
+	}
+	parseFlagsServer(&conf)
+
+	return conf
+}
+
+func parseFlagsServer(c *ConfigServerFlag) {
+	flag.StringVar(&c.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
+	flag.Parse()
+
+	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
+		c.FlagRunAddr = envRunAddr
+	}
 }

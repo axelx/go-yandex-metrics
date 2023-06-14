@@ -11,7 +11,7 @@ type MemStorage struct {
 	counter map[string]int64   //новое значение должно добавляться к предыдущему, если какое-то значение уже было известно серверу.
 }
 
-func NewStorage() MemStorage {
+func New() MemStorage {
 	return MemStorage{
 		gauge:   map[string]float64{},
 		counter: map[string]int64{},

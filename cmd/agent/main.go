@@ -7,10 +7,7 @@ import (
 )
 
 func main() {
-
-	confF := config.NewConfigAgentFlag()
-	parseFlags(&confF)
-	conf := config.NewConfigAgent(confF)
+	conf := config.NewConfigAgent()
 
 	fmt.Println("Running server on", conf.BaseURL, conf.ReportFrequency, conf.PollFrequency)
 

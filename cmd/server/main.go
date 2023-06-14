@@ -9,9 +9,9 @@ import (
 )
 
 func main() {
-	metricStorage := storage.NewStorage()
-	conf := config.NewConfigServerFlag()
-	parseFlags(&conf)
+	metricStorage := storage.New()
+
+	conf := config.NewConfigServer()
 
 	fmt.Println("Running server on", conf.FlagRunAddr)
 
