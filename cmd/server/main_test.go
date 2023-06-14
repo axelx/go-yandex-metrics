@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/axelx/go-yandex-metrics/internal/server/handlers"
-	"github.com/axelx/go-yandex-metrics/internal/server/storage"
+	"github.com/axelx/go-yandex-metrics/internal/handlers"
+	"github.com/axelx/go-yandex-metrics/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"

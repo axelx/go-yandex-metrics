@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/axelx/go-yandex-metrics/internal/server/service"
+	"github.com/axelx/go-yandex-metrics/internal/service"
 	"github.com/go-chi/chi/v5"
 	"html/template"
 	"net/http"
@@ -104,7 +104,7 @@ func (h *handler) GetMetric() http.HandlerFunc {
 
 func (h *handler) GetAllMetrics() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		tmpl := template.Must(template.ParseFiles("../../internal/server/handlers/layout.html"))
+		tmpl := template.Must(template.ParseFiles("../../internal/handlers/layout.html"))
 		tmpl.Execute(res, struct {
 			Gauge   map[string]float64
 			Counter map[string]int64

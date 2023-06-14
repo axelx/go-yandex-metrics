@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/axelx/go-yandex-metrics/internal/server/config"
-	"github.com/axelx/go-yandex-metrics/internal/server/metrics"
+	"github.com/axelx/go-yandex-metrics/internal/config"
+	"github.com/axelx/go-yandex-metrics/internal/metrics"
 )
 
 func main() {

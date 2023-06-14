@@ -7,8 +7,6 @@ import (
 	"strconv"
 )
 
-// AGENT
-
 type ConfigAgentFlag struct {
 	FlagServerAddr      string
 	FlagReportFrequency int
@@ -51,7 +49,6 @@ func NewConfigAgent() ConfigAgent {
 }
 
 func parseFlagsAgent(c *ConfigAgentFlag) {
-
 	flag.StringVar(&c.FlagServerAddr, "a", "localhost:8080", "address and port to run server")
 	flag.IntVar(&c.FlagReportFrequency, "r", 10, "report frequency to run server")
 	flag.IntVar(&c.FlagPollFrequency, "p", 2, "poll frequency")
@@ -70,29 +67,5 @@ func parseFlagsAgent(c *ConfigAgentFlag) {
 		if v, err := strconv.Atoi(envPollFrequency); err == nil {
 			c.FlagPollFrequency = v
 		}
-	}
-}
-
-//SERVER
-
-type ConfigServerFlag struct {
-	FlagRunAddr string
-}
-
-func NewConfigServer() ConfigServerFlag {
-	conf := ConfigServerFlag{
-		FlagRunAddr: "",
-	}
-	parseFlagsServer(&conf)
-
-	return conf
-}
-
-func parseFlagsServer(c *ConfigServerFlag) {
-	flag.StringVar(&c.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
-	flag.Parse()
-
-	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
-		c.FlagRunAddr = envRunAddr
 	}
 }
