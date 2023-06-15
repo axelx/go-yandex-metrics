@@ -12,8 +12,7 @@ type keeper interface {
 	SetGauge(string, float64) error
 	SetCounter(string, int64) error
 	GetMetric(string, string) (string, error)
-	GetGaugeMetric() map[string]float64
-	GetCounterMetric() map[string]int64
+	GetTypeMetric(string) interface{}
 }
 
 type handler struct {
@@ -106,11 +105,11 @@ func (h *handler) GetAllMetrics() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		tmpl := template.Must(template.ParseFiles("../../internal/handlers/layout.html"))
 		tmpl.Execute(res, struct {
-			Gauge   map[string]float64
-			Counter map[string]int64
+			Gauge   interface{}
+			Counter interface{}
 		}{
-			Gauge:   h.memStorage.GetGaugeMetric(),
-			Counter: h.memStorage.GetCounterMetric(),
+			Gauge:   h.memStorage.GetTypeMetric("gauge"),
+			Counter: h.memStorage.GetTypeMetric("counter"),
 		})
 	}
 }

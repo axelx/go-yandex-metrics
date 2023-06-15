@@ -3,6 +3,7 @@ package storage
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 )
 
@@ -48,9 +49,13 @@ func (m *MemStorage) GetMetric(typeMetric, nameMetric string) (string, error) {
 	}
 }
 
-func (m *MemStorage) GetGaugeMetric() map[string]float64 {
-	return m.gauge
-}
-func (m *MemStorage) GetCounterMetric() map[string]int64 {
-	return m.counter
+func (m *MemStorage) GetTypeMetric(t string) interface{} {
+	switch t {
+	case "gauge":
+		return reflect.ValueOf(m).Interface().(*MemStorage).gauge
+	case "counter":
+		return reflect.ValueOf(m).Interface().(*MemStorage).counter
+	}
+
+	return nil
 }
