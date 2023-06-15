@@ -30,3 +30,11 @@ git fetch template && git checkout template/main .github
 При мёрже ветки с инкрементом в основную ветку `main` будут запускаться все автотесты.
 
 Подробнее про локальный и автоматический запуск читайте в [README автотестов](https://github.com/Yandex-Practicum/go-autotests).
+
+
+## ---------------
+Для запуска проекта через докер:
+    1.  поменять адрес шаблона в internal/handlers/handlers.go
+            template.ParseFiles("internal/handlers/layout.html") 
+    2.  запустить 
+            cd docker && docker-compose up

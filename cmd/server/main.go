@@ -17,7 +17,6 @@ func main() {
 
 	hd := handlers.New(&metricStorage)
 	err := http.ListenAndServe(conf.FlagRunAddr, hd.Router())
-
 	if err != nil {
 		panic(err)
 	}
