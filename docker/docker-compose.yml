@@ -1,0 +1,39 @@
+version: '3.6'
+
+networks:
+  metrics_net:
+    driver: 'bridge'
+
+services:
+  server:
+    build:
+      context: ./../
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+    command: go run cmd/server/main.go
+    volumes:
+      - ../:/app
+    environment:
+      ADDRESS: "0.0.0.0:8080"
+    networks:
+      - metrics_net
+
+  agent:
+    build:
+      context: ./../
+      dockerfile: ./docker/Dockerfile
+    restart: unless-stopped
+
+    command: go run cmd/agent/main.go
+    volumes:
+      - ../:/app
+    environment:
+      ADDRESS: "server:8080"
+      REPORT_INTERVAL: 4
+      POLL_INTERVAL: 3
+    networks:
+      - metrics_net
+
