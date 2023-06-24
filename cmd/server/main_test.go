@@ -31,7 +31,7 @@ func TestGetMetric(t *testing.T) {
 	m.SetCounter("PollCount", 5)
 
 	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router())
+	ts := httptest.NewServer(hd.Router("info"))
 	defer ts.Close()
 
 	var testTable = []struct {
@@ -56,7 +56,7 @@ func TestUpdatedMetric(t *testing.T) {
 	m.SetCounter("PollCount", 5)
 
 	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router())
+	ts := httptest.NewServer(hd.Router("info"))
 	defer ts.Close()
 
 	type want struct {

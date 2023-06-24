@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
+	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
+	"go.uber.org/zap"
 	"net/http"
 )
 
@@ -12,12 +13,10 @@ func main() {
 	metricStorage := storage.New()
 
 	conf := config.NewConfigServer()
-
-	fmt.Println("Running server on", conf.FlagRunAddr)
+	logger.Log.Info("Running server", zap.String("address", conf.FlagRunAddr))
 
 	hd := handlers.New(&metricStorage)
-	err := http.ListenAndServe(conf.FlagRunAddr, hd.Router())
-	if err != nil {
+	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router(conf.FlagLogLevel)); err != nil {
 		panic(err)
 	}
 }

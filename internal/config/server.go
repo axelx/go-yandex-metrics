@@ -6,12 +6,14 @@ import (
 )
 
 type ConfigServerFlag struct {
-	FlagRunAddr string
+	FlagRunAddr  string
+	FlagLogLevel string
 }
 
 func NewConfigServer() ConfigServerFlag {
 	conf := ConfigServerFlag{
-		FlagRunAddr: "",
+		FlagRunAddr:  "",
+		FlagLogLevel: "",
 	}
 	parseFlagsServer(&conf)
 
@@ -20,9 +22,14 @@ func NewConfigServer() ConfigServerFlag {
 
 func parseFlagsServer(c *ConfigServerFlag) {
 	flag.StringVar(&c.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&c.FlagLogLevel, "l", "info", "log level")
+
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		c.FlagRunAddr = envRunAddr
+	}
+	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
+		c.FlagLogLevel = envLogLevel
 	}
 }
