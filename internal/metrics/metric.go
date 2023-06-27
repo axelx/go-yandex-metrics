@@ -50,6 +50,7 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 
 	for {
 		runtime.ReadMemStats(mem)
+
 		mf1 := float64(mem.Alloc)
 		m.data = append(m.data, models.Metrics{ID: "Alloc", MType: "gauge", Value: &mf1})
 		mf2 := float64(mem.BuckHashSys)
