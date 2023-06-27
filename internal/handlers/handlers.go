@@ -173,6 +173,7 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 			fmt.Println("Error json marshal metrics:", err)
 		}
 		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusOK)
 		size, _ := res.Write(metricsJSON)
 
 		logger.Log.Info("sending HTTP response UpdatedMetric",
@@ -209,6 +210,7 @@ func (h *handler) GetJSONMetric() http.HandlerFunc {
 			fmt.Println("Error json marshal metrics:", err)
 		}
 		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusOK)
 		size, _ := res.Write(metricsJSON)
 
 		logger.Log.Info("sending HTTP response UpdatedMetric",
