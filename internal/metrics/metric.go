@@ -28,7 +28,7 @@ func (m *Metric) Report(c config.ConfigAgent) {
 	for {
 		for _, metrics := range m.data {
 
-			metricsJSON, err := json.Marshal(metrics)
+			metricsJSON, _ := json.Marshal(metrics)
 			resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
 			if err != nil {
 				fmt.Println("Error reporting metrics:", err)
