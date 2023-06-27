@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
+	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,8 +14,8 @@ import (
 	"testing"
 )
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response, string) {
-	req, err := http.NewRequest(method, ts.URL+path, nil)
+func testRequest(t *testing.T, ts *httptest.Server, method, path string, body string) (*http.Response, string) {
+	req, err := http.NewRequest(method, ts.URL+path, bytes.NewReader([]byte(body)))
 	require.NoError(t, err)
 
 	resp, err := ts.Client().Do(req)
@@ -27,8 +30,10 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 
 func TestGetMetric(t *testing.T) {
 	m := storage.New()
-	m.SetGauge("HeapAlloc", 5.5)
-	m.SetCounter("PollCount", 5)
+	g := 5.5
+	c := int64(5)
+	m.SetGauge("HeapAlloc", &g)
+	m.SetCounter("PollCount", &c)
 
 	hd := handlers.New(&m)
 	ts := httptest.NewServer(hd.Router("info"))
@@ -38,22 +43,37 @@ func TestGetMetric(t *testing.T) {
 		url    string
 		want   string
 		status int
+		body   string
 	}{
-		{"/value/counter/PollCount", "5", http.StatusOK},
-		{"/value/gauge/HeapAlloc", "5.5", http.StatusOK},
+		{
+			url:    "/value/",
+			want:   `{"id":"HeapAlloc","type":"gauge","value":5.5}`,
+			status: http.StatusOK,
+			body:   `{"id":"HeapAlloc",	"type":"gauge"}`,
+		},
+		{"/value/", `{"id":"PollCount","type":"counter","delta":5}`, http.StatusOK,
+			`{"id":"PollCount",	"type":"counter"}`},
 	}
 	for _, v := range testTable {
-		resp, get := testRequest(t, ts, "GET", v.url)
+		resp, data := testRequest(t, ts, "POST", v.url, v.body)
+
+		var result models.Metrics
+		if err := json.Unmarshal([]byte(data), &result); err != nil {
+			panic(err)
+		}
+
 		defer resp.Body.Close()
 		assert.Equal(t, v.status, resp.StatusCode)
-		assert.Equal(t, v.want, get)
+		assert.Equal(t, v.want, data)
 	}
 }
 
 func TestUpdatedMetric(t *testing.T) {
 	m := storage.New()
-	m.SetGauge("HeapAlloc", 5.5)
-	m.SetCounter("PollCount", 5)
+	g := 5.5
+	c := int64(5)
+	m.SetGauge("HeapAlloc", &g)
+	m.SetCounter("PollCount", &c)
 
 	hd := handlers.New(&m)
 	ts := httptest.NewServer(hd.Router("info"))
@@ -64,21 +84,23 @@ func TestUpdatedMetric(t *testing.T) {
 		data       string
 	}
 	tests := []struct {
-		name    string
-		args    storage.MemStorage
-		want    want
-		request string
+		name string
+		args storage.MemStorage
+		want want
+		url  string
+		body string
 	}{
 		{
-			name:    "first",
-			args:    m,
-			want:    want{statusCode: 200, data: "5"},
-			request: "/update/counter/PollCount/5",
+			name: "first",
+			args: m,
+			want: want{statusCode: 200, data: `{"id":"PollCount","type":"counter","delta":1}`},
+			url:  "/update/",
+			body: `{"id":"PollCount","type":"counter","delta":1}`,
 		},
 	}
 
 	for _, v := range tests {
-		resp, post := testRequest(t, ts, "POST", v.request)
+		resp, post := testRequest(t, ts, "POST", v.url, v.body)
 		defer resp.Body.Close()
 		assert.Equal(t, v.want.statusCode, resp.StatusCode)
 		assert.Equal(t, v.want.data, post)

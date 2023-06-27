@@ -1,8 +1,11 @@
 package metrics
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
+	"github.com/axelx/go-yandex-metrics/internal/models"
 	"io"
 	"math/rand"
 	"runtime"
@@ -10,12 +13,12 @@ import (
 )
 
 type Metric struct {
-	data []string
+	data []models.Metrics
 }
 
 func New() Metric {
 	return Metric{
-		data: []string{},
+		data: []models.Metrics{},
 	}
 }
 
@@ -25,7 +28,8 @@ func (m *Metric) Report(c config.ConfigAgent) {
 	for {
 		for _, metrics := range m.data {
 
-			resp, err := c.Client.Post(metrics, "text/plain", nil)
+			metricsJSON, err := json.Marshal(metrics)
+			resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
 			if err != nil {
 				fmt.Println("Error reporting metrics:", err)
 			} else {
@@ -46,31 +50,53 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 
 	for {
 		runtime.ReadMemStats(mem)
+		mf1 := float64(mem.Alloc)
+		m.data = append(m.data, models.Metrics{ID: "Alloc", MType: "gauge", Value: &mf1})
+		mf2 := float64(mem.BuckHashSys)
+		m.data = append(m.data, models.Metrics{ID: "BuckHashSys", MType: "gauge", Value: &mf2})
+		mf3 := float64(mem.Frees)
+		m.data = append(m.data, models.Metrics{ID: "Frees", MType: "gauge", Value: &mf3})
+		mf4 := float64(mem.GCCPUFraction)
+		m.data = append(m.data, models.Metrics{ID: "GCCPUFraction", MType: "gauge", Value: &mf4})
+		mf5 := float64(mem.GCSys)
+		m.data = append(m.data, models.Metrics{ID: "GCSys", MType: "gauge", Value: &mf5})
+		mf6 := float64(mem.HeapAlloc)
+		m.data = append(m.data, models.Metrics{ID: "HeapAlloc", MType: "gauge", Value: &mf6})
+		mf7 := float64(mem.HeapIdle)
+		m.data = append(m.data, models.Metrics{ID: "HeapIdle", MType: "gauge", Value: &mf7})
+		mf8 := float64(mem.HeapInuse)
+		m.data = append(m.data, models.Metrics{ID: "HeapInuse", MType: "gauge", Value: &mf8})
+		mf9 := float64(mem.HeapObjects)
+		m.data = append(m.data, models.Metrics{ID: "HeapObjects", MType: "gauge", Value: &mf9})
+		mf10 := float64(mem.HeapReleased)
+		m.data = append(m.data, models.Metrics{ID: "HeapReleased", MType: "gauge", Value: &mf10})
+		mf11 := float64(mem.HeapSys)
+		m.data = append(m.data, models.Metrics{ID: "HeapSys", MType: "gauge", Value: &mf11})
+		mf12 := float64(mem.LastGC)
+		m.data = append(m.data, models.Metrics{ID: "LastGC", MType: "gauge", Value: &mf12})
+		mf13 := float64(mem.Lookups)
+		m.data = append(m.data, models.Metrics{ID: "Lookups", MType: "gauge", Value: &mf13})
+		mf14 := float64(mem.MCacheInuse)
+		m.data = append(m.data, models.Metrics{ID: "MCacheInuse", MType: "gauge", Value: &mf14})
+		mf15 := float64(mem.MCacheSys)
+		m.data = append(m.data, models.Metrics{ID: "MCacheSys", MType: "gauge", Value: &mf15})
+		mf16 := float64(mem.MSpanInuse)
+		m.data = append(m.data, models.Metrics{ID: "MSpanInuse", MType: "gauge", Value: &mf16})
+		mf17 := float64(mem.MSpanSys)
+		m.data = append(m.data, models.Metrics{ID: "MSpanSys", MType: "gauge", Value: &mf17})
+		mf18 := float64(mem.Mallocs)
+		m.data = append(m.data, models.Metrics{ID: "Mallocs", MType: "gauge", Value: &mf18})
+		mf19 := float64(mem.NextGC)
+		m.data = append(m.data, models.Metrics{ID: "NextGC", MType: "gauge", Value: &mf19})
+		mf20 := float64(mem.NumForcedGC)
+		m.data = append(m.data, models.Metrics{ID: "NumForcedGC", MType: "gauge", Value: &mf20})
+		mf21 := float64(mem.NumGC)
+		m.data = append(m.data, models.Metrics{ID: "NumGC", MType: "gauge", Value: &mf21})
 
-		m.data = append(m.data, urlReportMetric("gauge", "Alloc", float64(mem.Alloc), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "BuckHashSys", float64(mem.BuckHashSys), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "Frees", float64(mem.Frees), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "GCCPUFraction", float64(mem.GCCPUFraction), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "GCSys", float64(mem.GCSys), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "HeapAlloc", float64(mem.HeapAlloc), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "HeapIdle", float64(mem.HeapIdle), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "HeapInuse", float64(mem.HeapInuse), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "HeapObjects", float64(mem.HeapObjects), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "HeapReleased", float64(mem.HeapReleased), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "HeapSys", float64(mem.HeapSys), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "LastGC", float64(mem.LastGC), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "Lookups", float64(mem.Lookups), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "MCacheInuse", float64(mem.MCacheInuse), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "MCacheSys", float64(mem.MCacheSys), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "MSpanInuse", float64(mem.MSpanInuse), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "MSpanSys", float64(mem.MSpanSys), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "Mallocs", float64(mem.Mallocs), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "NextGC", float64(mem.NextGC), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "NumForcedGC", float64(mem.NumForcedGC), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("gauge", "NumGC", float64(mem.NumGC), c.BaseURL))
-
-		m.data = append(m.data, urlReportMetric("gauge", "RandomValue", rand.Float64(), c.BaseURL))
-		m.data = append(m.data, urlReportMetric("counter", "PollCount", float64(PollCount), c.BaseURL))
+		r := rand.Float64()
+		m.data = append(m.data, models.Metrics{ID: "RandomValue", MType: "gauge", Value: &r})
+		i := int64(PollCount)
+		m.data = append(m.data, models.Metrics{ID: "PollCount", MType: "counter", Delta: &i})
 
 		PollCount += 1
 
@@ -78,15 +104,5 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 			break
 		}
 		time.Sleep(time.Duration(c.PollFrequency) * time.Second)
-	}
-}
-func urlReportMetric(metricType string, metricName string, metricValue float64, baseURL string) string {
-	if metricType == "gauge" {
-		return fmt.Sprintf("%s%s/%s/%f", baseURL, metricType, metricName, metricValue)
-	} else if metricType == "counter" {
-		i := int(metricValue)
-		return fmt.Sprintf("%s%s/%s/%v", baseURL, metricType, metricName, i)
-	} else {
-		return "ошибка в создании отчета по метрики"
 	}
 }

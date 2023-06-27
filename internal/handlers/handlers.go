@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
-	"github.com/axelx/go-yandex-metrics/internal/service"
+	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 	"html/template"
@@ -14,9 +15,9 @@ import (
 )
 
 type keeper interface {
-	SetGauge(string, float64) error
-	SetCounter(string, int64) error
-	GetMetric(string, string) (string, error)
+	SetGauge(string, *float64) error
+	SetCounter(string, *int64) error
+	GetMetric(string, string) (models.Metrics, error)
 	GetTypeMetric(string) interface{}
 }
 
@@ -40,41 +41,38 @@ func (h *handler) Router(flagLogLevel string) chi.Router {
 	r := chi.NewRouter()
 
 	r.Get("/", logger.RequestLogger(h.GetAllMetrics()))
-	r.Post("/update/{typeM}/{nameM}/{valueM}", logger.RequestLogger(h.UpdatedMetric()))
-	r.Get("/value/{typeM}/{nameM}", logger.RequestLogger(h.GetMetric()))
+	r.Post("/update/", logger.RequestLogger(h.UpdatedMetric()))
+	r.Post("/value/", logger.RequestLogger(h.GetMetric()))
 	return r
 }
 
 func (h *handler) UpdatedMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		typeM := chi.URLParam(req, "typeM")
-		nameM := chi.URLParam(req, "nameM")
 
-		valueM := chi.URLParam(req, "valueM")
+		logger.Log.Debug("decoding request")
+		var metrics models.Metrics
+		dec := json.NewDecoder(req.Body)
+		if err := dec.Decode(&metrics); err != nil {
+			logger.Log.Debug("cannot decode request JSON body", zap.Error(err))
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-		if typeM == "" || nameM == "" || valueM == "" {
+		iz := int64(0)
+		fz := float64(0)
+		if metrics.MType == "" || metrics.ID == "" || (metrics.Delta == &iz && metrics.Value == &fz) {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
 		}
-		switch typeM {
+		switch metrics.MType {
 		case "gauge":
-			val, err := service.PrepareFloat64Data(valueM)
-			if err != nil {
-				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
-				return
-			}
-			err = h.memStorage.SetGauge(nameM, val)
+			err := h.memStorage.SetGauge(metrics.ID, metrics.Value)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
 			}
 		case "counter":
-			i, err := service.PrepareInt64Data(valueM)
-			if err != nil {
-				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
-				return
-			}
-			err = h.memStorage.SetCounter(nameM, i)
+			err := h.memStorage.SetCounter(metrics.ID, metrics.Delta)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
@@ -83,8 +81,11 @@ func (h *handler) UpdatedMetric() http.HandlerFunc {
 			http.Error(res, "StatusBadRequest", http.StatusBadRequest)
 			return
 		}
-
-		size, _ := res.Write([]byte(valueM))
+		metricsJSON, err := json.Marshal(metrics)
+		if err != nil {
+			fmt.Println("Error json marshal metrics:", err)
+		}
+		size, _ := res.Write(metricsJSON)
 
 		res.WriteHeader(http.StatusOK)
 
@@ -97,21 +98,31 @@ func (h *handler) UpdatedMetric() http.HandlerFunc {
 
 func (h *handler) GetMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		typeM := chi.URLParam(req, "typeM")
-		nameM := chi.URLParam(req, "nameM")
 
-		if typeM == "" || nameM == "" {
+		var metrics models.Metrics
+		dec := json.NewDecoder(req.Body)
+		if err := dec.Decode(&metrics); err != nil {
+			logger.Log.Debug("cannot decode request JSON body", zap.Error(err))
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if metrics.MType == "" || metrics.ID == "" {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
 		}
 
-		metric, err := h.memStorage.GetMetric(typeM, nameM)
+		metric, err := h.memStorage.GetMetric(metrics.MType, metrics.ID)
 		if err != nil {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
 		}
 
-		size, _ := res.Write([]byte(metric))
+		metricsJSON, err := json.Marshal(metric)
+		if err != nil {
+			fmt.Println("Error json marshal metrics:", err)
+		}
+		size, _ := res.Write(metricsJSON)
 
 		res.WriteHeader(http.StatusOK)
 
