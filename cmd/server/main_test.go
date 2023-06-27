@@ -88,7 +88,7 @@ func TestUpdatedMetric(t *testing.T) {
 	}
 }
 
-func testJsonRequest(t *testing.T, ts *httptest.Server, method, path string, body string) (*http.Response, string) {
+func testJSONRequest(t *testing.T, ts *httptest.Server, method, path string, body string) (*http.Response, string) {
 	req, err := http.NewRequest(method, ts.URL+path, bytes.NewReader([]byte(body)))
 	require.NoError(t, err)
 
@@ -106,8 +106,8 @@ func TestGetJsonMetric(t *testing.T) {
 	m := storage.New()
 	g := 5.5
 	c := int64(5)
-	m.SetJsonGauge("HeapAlloc", &g)
-	m.SetJsonCounter("PollCount", &c)
+	m.SetJSONGauge("HeapAlloc", &g)
+	m.SetJSONCounter("PollCount", &c)
 
 	hd := handlers.New(&m)
 	ts := httptest.NewServer(hd.Router("info"))
@@ -129,7 +129,7 @@ func TestGetJsonMetric(t *testing.T) {
 			`{"id":"PollCount",	"type":"counter"}`},
 	}
 	for _, v := range testTable {
-		resp, data := testJsonRequest(t, ts, "POST", v.url, v.body)
+		resp, data := testJSONRequest(t, ts, "POST", v.url, v.body)
 
 		var result models.Metrics
 		if err := json.Unmarshal([]byte(data), &result); err != nil {
@@ -146,8 +146,8 @@ func TestJsonUpdatedMetric(t *testing.T) {
 	m := storage.New()
 	g := 5.5
 	c := int64(5)
-	m.SetJsonGauge("HeapAlloc", &g)
-	m.SetJsonCounter("PollCount", &c)
+	m.SetJSONGauge("HeapAlloc", &g)
+	m.SetJSONCounter("PollCount", &c)
 
 	hd := handlers.New(&m)
 	ts := httptest.NewServer(hd.Router("info"))
@@ -174,7 +174,7 @@ func TestJsonUpdatedMetric(t *testing.T) {
 	}
 
 	for _, v := range tests {
-		resp, post := testJsonRequest(t, ts, "POST", v.url, v.body)
+		resp, post := testJSONRequest(t, ts, "POST", v.url, v.body)
 		defer resp.Body.Close()
 		assert.Equal(t, v.want.statusCode, resp.StatusCode)
 		assert.Equal(t, v.want.data, post)

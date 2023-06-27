@@ -50,17 +50,17 @@ func (m *MemStorage) GetMetric(typeMetric, nameMetric string) (string, error) {
 	}
 }
 
-func (m *MemStorage) SetJsonGauge(nameMetric string, data *float64) error {
+func (m *MemStorage) SetJSONGauge(nameMetric string, data *float64) error {
 	m.gauge[nameMetric] = *data
 	return nil
 }
 
-func (m *MemStorage) SetJsonCounter(nameMetric string, data *int64) error {
+func (m *MemStorage) SetJSONCounter(nameMetric string, data *int64) error {
 	m.counter[nameMetric] += *data
 	return nil
 }
 
-func (m *MemStorage) GetJsonMetric(typeMetric, nameMetric string) (models.Metrics, error) {
+func (m *MemStorage) GetJSONMetric(typeMetric, nameMetric string) (models.Metrics, error) {
 	err := errors.New("не найдена метрика")
 	mt := models.Metrics{}
 	switch typeMetric {

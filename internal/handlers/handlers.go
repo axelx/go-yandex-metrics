@@ -20,9 +20,9 @@ type keeper interface {
 	SetCounter(string, int64) error
 	GetMetric(string, string) (string, error)
 
-	SetJsonGauge(string, *float64) error
-	SetJsonCounter(string, *int64) error
-	GetJsonMetric(string, string) (models.Metrics, error)
+	SetJSONGauge(string, *float64) error
+	SetJSONCounter(string, *int64) error
+	GetJSONMetric(string, string) (models.Metrics, error)
 
 	GetTypeMetric(string) interface{}
 }
@@ -47,8 +47,8 @@ func (h *handler) Router(flagLogLevel string) chi.Router {
 	r := chi.NewRouter()
 
 	r.Get("/", logger.RequestLogger(h.GetAllMetrics()))
-	r.Post("/update/", logger.RequestLogger(h.UpdatedJsonMetric()))
-	r.Post("/value/", logger.RequestLogger(h.GetJsonMetric()))
+	r.Post("/update/", logger.RequestLogger(h.UpdatedJSONMetric()))
+	r.Post("/value/", logger.RequestLogger(h.GetJSONMetric()))
 
 	r.Post("/update/{typeM}/{nameM}/{valueM}", logger.RequestLogger(h.UpdatedMetric()))
 	r.Get("/value/{typeM}/{nameM}", logger.RequestLogger(h.GetMetric()))
@@ -133,7 +133,7 @@ func (h *handler) GetMetric() http.HandlerFunc {
 	}
 }
 
-func (h *handler) UpdatedJsonMetric() http.HandlerFunc {
+func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
 		logger.Log.Debug("decoding request")
@@ -153,13 +153,13 @@ func (h *handler) UpdatedJsonMetric() http.HandlerFunc {
 		}
 		switch metrics.MType {
 		case "gauge":
-			err := h.memStorage.SetJsonGauge(metrics.ID, metrics.Value)
+			err := h.memStorage.SetJSONGauge(metrics.ID, metrics.Value)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
 			}
 		case "counter":
-			err := h.memStorage.SetJsonCounter(metrics.ID, metrics.Delta)
+			err := h.memStorage.SetJSONCounter(metrics.ID, metrics.Delta)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
@@ -183,7 +183,7 @@ func (h *handler) UpdatedJsonMetric() http.HandlerFunc {
 	}
 }
 
-func (h *handler) GetJsonMetric() http.HandlerFunc {
+func (h *handler) GetJSONMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
 		var metrics models.Metrics
@@ -199,7 +199,7 @@ func (h *handler) GetJsonMetric() http.HandlerFunc {
 			return
 		}
 
-		metric, err := h.memStorage.GetJsonMetric(metrics.MType, metrics.ID)
+		metric, err := h.memStorage.GetJSONMetric(metrics.MType, metrics.ID)
 		if err != nil {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
