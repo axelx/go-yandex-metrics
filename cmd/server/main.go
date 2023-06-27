@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+
 	metricStorage := storage.New()
 
 	conf := config.NewConfigServer()
