@@ -32,7 +32,7 @@ func (m *Metric) Report(c config.ConfigAgent) {
 			if err != nil {
 				fmt.Printf("Error metricsJSON: %s\n", err)
 			}
-			resp, _ := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
+			resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
 			if err != nil {
 				fmt.Println("Error reporting metrics:", err, string(metricsJSON))
 			} else {
