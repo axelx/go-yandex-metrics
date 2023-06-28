@@ -43,11 +43,11 @@ func (m *Metric) Report(c config.ConfigAgent) {
 			resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
 			if err != nil {
 
-				maxRetries := 50
+				maxRetries := 5
 				retryDelay := time.Millisecond * 100
 
 				for i := 0; i < maxRetries; i++ {
-					_, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
+					resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
 
 					if err != nil {
 						//fmt.Printf("Error reporting metrics: %v\nRequest data: %s\n", err, string(metricsJSON))
@@ -59,6 +59,7 @@ func (m *Metric) Report(c config.ConfigAgent) {
 						time.Sleep(retryDelay)
 						continue
 					}
+					resp.Body.Close()
 
 					break
 				}
