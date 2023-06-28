@@ -34,8 +34,8 @@ func (m *Metric) Report(c config.ConfigAgent) {
 			resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
 			if err != nil {
 
-				maxRetries := 3
-				retryDelay := time.Millisecond * 500
+				maxRetries := 10
+				retryDelay := time.Millisecond * 400
 
 				for i := 0; i < maxRetries; i++ {
 					_, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
