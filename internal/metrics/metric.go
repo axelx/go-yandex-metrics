@@ -30,12 +30,21 @@ func (m *Metric) Report(c config.ConfigAgent) {
 	for {
 		for _, metrics := range m.data {
 
-			metricsJSON, _ := json.Marshal(metrics)
+			metricsJSON, err := json.Marshal(metrics)
+			if err != nil {
+				fmt.Printf("Error reporting metrics: %v\nRequest data: %s\n", err, string(metricsJSON))
+
+				logger.Log.Info("----",
+					zap.String("err", "err metricsJSON"),
+					zap.String("data", string(metricsJSON)),
+				)
+			}
+
 			resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
 			if err != nil {
 
-				maxRetries := 10
-				retryDelay := time.Millisecond * 400
+				maxRetries := 50
+				retryDelay := time.Millisecond * 100
 
 				for i := 0; i < maxRetries; i++ {
 					_, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
@@ -53,7 +62,7 @@ func (m *Metric) Report(c config.ConfigAgent) {
 
 					break
 				}
-				fmt.Printf("Error reporting metrics: %v\nRequest data: %s\n", err, string(metricsJSON))
+				fmt.Printf("Error reporting metrics: %v\tRequest data: %s\n", err, string(metricsJSON))
 
 			} else {
 				body, _ := io.ReadAll(resp.Body)
