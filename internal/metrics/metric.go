@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
-	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
-	"go.uber.org/zap"
 	"io"
 	"math/rand"
 	"runtime"
@@ -32,43 +30,15 @@ func (m *Metric) Report(c config.ConfigAgent) {
 
 			metricsJSON, err := json.Marshal(metrics)
 			if err != nil {
-				fmt.Printf("Error metricsJSON: %v\nRequest data: %s\n", err, string(metricsJSON))
-
-				logger.Log.Info("----",
-					zap.String("err", "err metricsJSON"),
-					zap.String("data", string(metricsJSON)),
-				)
+				fmt.Printf("Error metricsJSON: %s\n", err)
 			}
-
 			resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
 			if err != nil {
-
-				maxRetries := 5
-				retryDelay := time.Millisecond * 100
-
-				for i := 0; i < maxRetries; i++ {
-					resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
-
-					if err != nil {
-						//fmt.Printf("Error reporting metrics: %v\nRequest data: %s\n", err, string(metricsJSON))
-
-						logger.Log.Info("sending HTTP response UpdatedMetric",
-							zap.String("err", "err"),
-							zap.String("data", string(metricsJSON)),
-						)
-						time.Sleep(retryDelay)
-						continue
-					}
-					resp.Body.Close()
-
-					break
-				}
-				fmt.Printf("Error reporting metrics: %v\tRequest data: %s\n", err, string(metricsJSON))
-
+				fmt.Println("Error reporting metrics:", err, string(metricsJSON))
 			} else {
 				body, _ := io.ReadAll(resp.Body)
 				resp.Body.Close()
-				fmt.Println("Metrics sent successfully! Response body:", string(body))
+				fmt.Printf("Metrics sent successfully! Response body: %s\n", body)
 			}
 		}
 
