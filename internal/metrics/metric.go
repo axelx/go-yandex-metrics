@@ -37,7 +37,7 @@ func (m *Metric) Report(c config.ConfigAgent) {
 				fmt.Println("Error reporting metrics:", err, string(metricsJSON))
 			} else {
 				body, _ := io.ReadAll(resp.Body)
-				resp.Body.Close()
+				//resp.Body.Close()
 				fmt.Printf("Metrics sent successfully! Response body: %s\n", body)
 			}
 		}
@@ -53,6 +53,11 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 
 	for {
 		runtime.ReadMemStats(mem)
+
+		r := rand.Float64()
+		m.data = append(m.data, models.Metrics{ID: "RandomValue", MType: "gauge", Value: &r})
+		i := int64(PollCount)
+		m.data = append(m.data, models.Metrics{ID: "PollCount", MType: "counter", Delta: &i})
 
 		mf1 := float64(mem.Alloc)
 		m.data = append(m.data, models.Metrics{ID: "Alloc", MType: "gauge", Value: &mf1})
@@ -108,11 +113,6 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 		m.data = append(m.data, models.Metrics{ID: "OtherSys", MType: "gauge", Value: &mf26})
 		mf27 := float64(mem.TotalAlloc)
 		m.data = append(m.data, models.Metrics{ID: "TotalAlloc", MType: "gauge", Value: &mf27})
-
-		r := rand.Float64()
-		m.data = append(m.data, models.Metrics{ID: "RandomValue", MType: "gauge", Value: &r})
-		i := int64(PollCount)
-		m.data = append(m.data, models.Metrics{ID: "PollCount", MType: "counter", Delta: &i})
 
 		PollCount += 1
 
