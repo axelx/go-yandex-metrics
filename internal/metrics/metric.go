@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
+	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
+	"go.uber.org/zap"
 	"io"
 	"math/rand"
 	"runtime"
@@ -31,11 +33,32 @@ func (m *Metric) Report(c config.ConfigAgent) {
 			metricsJSON, _ := json.Marshal(metrics)
 			resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
 			if err != nil {
-				fmt.Println("Error reporting metrics:", err, string(metricsJSON))
+
+				maxRetries := 3
+				retryDelay := time.Millisecond * 500
+
+				for i := 0; i < maxRetries; i++ {
+					_, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
+
+					if err != nil {
+						//fmt.Printf("Error reporting metrics: %v\nRequest data: %s\n", err, string(metricsJSON))
+
+						logger.Log.Info("sending HTTP response UpdatedMetric",
+							zap.String("err", "err"),
+							zap.String("data", string(metricsJSON)),
+						)
+						time.Sleep(retryDelay)
+						continue
+					}
+
+					break
+				}
+				fmt.Printf("Error reporting metrics: %v\nRequest data: %s\n", err, string(metricsJSON))
+
 			} else {
 				body, _ := io.ReadAll(resp.Body)
 				resp.Body.Close()
-				fmt.Printf("Metrics sent successfully! Response body: %s\n", body)
+				fmt.Println("Metrics sent successfully! Response body:", string(body))
 			}
 		}
 
