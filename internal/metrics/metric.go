@@ -31,7 +31,7 @@ func (m *Metric) Report(c config.ConfigAgent) {
 			metricsJSON, _ := json.Marshal(metrics)
 			resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
 			if err != nil {
-				fmt.Println("Error reporting metrics:", err)
+				fmt.Println("Error reporting metrics:", err, metricsJSON)
 			} else {
 				body, _ := io.ReadAll(resp.Body)
 				resp.Body.Close()
@@ -103,7 +103,7 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 		m.data = append(m.data, models.Metrics{ID: "PauseTotalNs", MType: "gauge", Value: &mf25})
 		mf26 := float64(mem.OtherSys)
 		m.data = append(m.data, models.Metrics{ID: "OtherSys", MType: "gauge", Value: &mf26})
-		mf27 := float64(mem.TotalAlloc) + rand.Float64()
+		mf27 := float64(mem.TotalAlloc)
 		m.data = append(m.data, models.Metrics{ID: "TotalAlloc", MType: "gauge", Value: &mf27})
 
 		r := rand.Float64()
