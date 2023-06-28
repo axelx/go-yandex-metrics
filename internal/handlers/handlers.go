@@ -168,7 +168,14 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 			http.Error(res, "StatusBadRequest", http.StatusBadRequest)
 			return
 		}
-		metricsJSON, err := json.Marshal(metrics)
+
+		metricStorage, err := h.memStorage.GetJSONMetric(metrics.MType, metrics.ID)
+		if err != nil {
+			http.Error(res, "StatusNotFound", http.StatusNotFound)
+			return
+		}
+
+		metricsJSON, err := json.Marshal(metricStorage)
 		if err != nil {
 			fmt.Println("Error json marshal metrics:", err)
 		}

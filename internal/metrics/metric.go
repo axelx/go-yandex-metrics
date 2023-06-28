@@ -33,13 +33,13 @@ func (m *Metric) Report(c config.ConfigAgent) {
 				fmt.Printf("Error metricsJSON: %s\n", err)
 			}
 			resp, _ := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
-			//if err != nil {
-			//	fmt.Println("Error reporting metrics:", err, string(metricsJSON))
-			//} else {
-			body, _ := io.ReadAll(resp.Body)
-			//resp.Body.Close()
-			fmt.Printf("Metrics sent successfully! Response body: %s\n", body)
-			//}
+			if err != nil {
+				fmt.Println("Error reporting metrics:", err, string(metricsJSON))
+			} else {
+				body, _ := io.ReadAll(resp.Body)
+				resp.Body.Close()
+				fmt.Printf("Metrics sent successfully! Response body: %s\n", body)
+			}
 		}
 
 		time.Sleep(time.Duration(c.ReportFrequency) * time.Second)
