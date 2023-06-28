@@ -169,13 +169,13 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 			return
 		}
 
-		metricStorage, err := h.memStorage.GetJSONMetric(metrics.MType, metrics.ID)
-		if err != nil {
-			http.Error(res, "StatusNotFound", http.StatusNotFound)
-			return
-		}
+		//metricStorage, err := h.memStorage.GetJSONMetric(metrics.MType, metrics.ID)
+		//if err != nil {
+		//	http.Error(res, "StatusNotFound", http.StatusNotFound)
+		//	return
+		//}
 
-		metricsJSON, err := json.Marshal(metricStorage)
+		metricsJSON, err := json.Marshal(metrics)
 		if err != nil {
 			fmt.Println("Error json marshal metrics:", err)
 		}
