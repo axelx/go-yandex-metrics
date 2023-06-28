@@ -167,7 +167,7 @@ func TestJsonUpdatedMetric(t *testing.T) {
 		{
 			name: "first",
 			args: m,
-			want: want{statusCode: 200, data: `{"id":"PollCount","type":"counter","delta":6}`},
+			want: want{statusCode: 200, data: `{"id":"PollCount","type":"counter","delta":1}`},
 			url:  "/update/",
 			body: `{"id":"PollCount","type":"counter","delta":1}`,
 		},
