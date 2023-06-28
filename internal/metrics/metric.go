@@ -31,7 +31,7 @@ func (m *Metric) Report(c config.ConfigAgent) {
 			metricsJSON, _ := json.Marshal(metrics)
 			resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
 			if err != nil {
-				fmt.Println("Error reporting metrics:", err, metricsJSON)
+				fmt.Println("Error reporting metrics:", err, string(metricsJSON))
 			} else {
 				body, _ := io.ReadAll(resp.Body)
 				resp.Body.Close()
