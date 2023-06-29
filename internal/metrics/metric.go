@@ -121,6 +121,12 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 		if maxCycle <= PollCount {
 			break
 		}
+		allocate()
 		time.Sleep(time.Duration(c.PollFrequency) * time.Second)
 	}
+}
+
+func allocate() {
+	//  0.25MB
+	_ = make([]byte, int((1<<20)*0.25))
 }
