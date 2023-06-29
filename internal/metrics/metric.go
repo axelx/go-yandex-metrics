@@ -56,26 +56,11 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 
 	for {
 		runtime.ReadMemStats(mem)
-
-		r := rand.Float64()
-		m.data = append(m.data, models.Metrics{ID: "RandomValue", MType: "gauge", Value: &r})
+		m.data = []models.Metrics{}
 		i := int64(PollCount)
 		m.data = append(m.data, models.Metrics{ID: "PollCount", MType: "counter", Delta: &i})
-
-		mf27 := float64(mem.TotalAlloc)
-		m.data = append(m.data, models.Metrics{ID: "TotalAlloc", MType: "gauge", Value: &mf27})
-
-		mf6 := float64(mem.HeapAlloc)
-		m.data = append(m.data, models.Metrics{ID: "HeapAlloc", MType: "gauge", Value: &mf6})
-		mf7 := float64(mem.HeapIdle)
-		m.data = append(m.data, models.Metrics{ID: "HeapIdle", MType: "gauge", Value: &mf7})
-		mf8 := float64(mem.HeapInuse)
-		m.data = append(m.data, models.Metrics{ID: "HeapInuse", MType: "gauge", Value: &mf8})
-		mf9 := float64(mem.HeapObjects)
-		m.data = append(m.data, models.Metrics{ID: "HeapObjects", MType: "gauge", Value: &mf9})
-		mf10 := float64(mem.HeapReleased)
-		m.data = append(m.data, models.Metrics{ID: "HeapReleased", MType: "gauge", Value: &mf10})
-
+		r := rand.Float64()
+		m.data = append(m.data, models.Metrics{ID: "RandomValue", MType: "gauge", Value: &r})
 		mf1 := float64(mem.Alloc)
 		m.data = append(m.data, models.Metrics{ID: "Alloc", MType: "gauge", Value: &mf1})
 		mf2 := float64(mem.BuckHashSys)
@@ -86,6 +71,16 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 		m.data = append(m.data, models.Metrics{ID: "GCCPUFraction", MType: "gauge", Value: &mf4})
 		mf5 := float64(mem.GCSys)
 		m.data = append(m.data, models.Metrics{ID: "GCSys", MType: "gauge", Value: &mf5})
+		mf6 := float64(mem.HeapAlloc)
+		m.data = append(m.data, models.Metrics{ID: "HeapAlloc", MType: "gauge", Value: &mf6})
+		mf7 := float64(mem.HeapIdle)
+		m.data = append(m.data, models.Metrics{ID: "HeapIdle", MType: "gauge", Value: &mf7})
+		mf8 := float64(mem.HeapInuse)
+		m.data = append(m.data, models.Metrics{ID: "HeapInuse", MType: "gauge", Value: &mf8})
+		mf9 := float64(mem.HeapObjects)
+		m.data = append(m.data, models.Metrics{ID: "HeapObjects", MType: "gauge", Value: &mf9})
+		mf10 := float64(mem.HeapReleased)
+		m.data = append(m.data, models.Metrics{ID: "HeapReleased", MType: "gauge", Value: &mf10})
 		mf11 := float64(mem.HeapSys)
 		m.data = append(m.data, models.Metrics{ID: "HeapSys", MType: "gauge", Value: &mf11})
 		mf12 := float64(mem.LastGC)
@@ -118,6 +113,8 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 		m.data = append(m.data, models.Metrics{ID: "PauseTotalNs", MType: "gauge", Value: &mf25})
 		mf26 := float64(mem.OtherSys)
 		m.data = append(m.data, models.Metrics{ID: "OtherSys", MType: "gauge", Value: &mf26})
+		mf27 := float64(mem.TotalAlloc)
+		m.data = append(m.data, models.Metrics{ID: "TotalAlloc", MType: "gauge", Value: &mf27})
 
 		PollCount += 1
 
