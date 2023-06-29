@@ -26,6 +26,7 @@ func (m *Metric) Report(c config.ConfigAgent) {
 	//производим опрос/обновление метрик
 	m.Poll(c)
 	for {
+		m.Poll(c)
 		for _, metrics := range m.data {
 
 			metricsJSON, err := json.Marshal(metrics)
@@ -121,7 +122,6 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 		if maxCycle <= PollCount {
 			break
 		}
-		allocate()
 		time.Sleep(time.Duration(c.PollFrequency) * time.Second)
 	}
 }
