@@ -37,7 +37,10 @@ func (m *Metric) Report(c config.ConfigAgent) {
 				fmt.Println("Error reporting metrics:", err, string(metricsJSON))
 			} else {
 				body, _ := io.ReadAll(resp.Body)
-				resp.Body.Close()
+				if err := resp.Body.Close(); err != nil {
+					fmt.Println("Error resp.Body.Close():", err)
+				}
+
 				fmt.Printf("Metrics sent successfully! Send body: %s, Response body: %s\n", string(metricsJSON), body)
 			}
 		}
