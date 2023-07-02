@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/mgzip"
-	"github.com/axelx/go-yandex-metrics/internal/middleware"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/service"
 	"github.com/go-chi/chi/v5"
