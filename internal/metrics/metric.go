@@ -25,9 +25,8 @@ func New() Metric {
 }
 
 func (m *Metric) Report(c config.ConfigAgent) {
-	//производим опрос/обновление метрик
-	m.Poll(c)
 	for {
+		//производим опрос/обновление метрик
 		m.Poll(c)
 		for _, metrics := range m.data {
 
@@ -39,7 +38,7 @@ func (m *Metric) Report(c config.ConfigAgent) {
 			buf := bytes.NewBuffer(nil)
 			zb := gzip.NewWriter(buf)
 			_, err = zb.Write([]byte(metricsJSON))
-			err = zb.Close()
+			zb.Close()
 
 			req, _ := http.NewRequest("POST", c.BaseURL, buf)
 			req.Header.Set("Content-Type", "application/json")
@@ -136,9 +135,4 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 		}
 		time.Sleep(time.Duration(c.PollFrequency) * time.Second)
 	}
-}
-
-func allocate() {
-	//  0.25MB
-	_ = make([]byte, int((1<<20)*0.25))
 }
