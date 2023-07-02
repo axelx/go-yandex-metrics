@@ -25,7 +25,6 @@ func New() Metric {
 }
 
 func (m *Metric) Report(c config.ConfigAgent) {
-	m.Poll(c)
 	for {
 		//производим опрос/обновление метрик
 		m.Poll(c)
@@ -50,9 +49,7 @@ func (m *Metric) Report(c config.ConfigAgent) {
 				fmt.Println("Error reporting metrics:", err, string(metricsJSON))
 			} else {
 				body, _ := io.ReadAll(resp.Body)
-				if err := resp.Body.Close(); err != nil {
-					fmt.Println("Error resp.Body.Close():", err)
-				}
+				resp.Body.Close()
 
 				fmt.Printf("Metrics sent successfully! Send body: %s, Response body: %s\n", string(metricsJSON), body)
 			}
@@ -70,10 +67,10 @@ func (m *Metric) Poll(c config.ConfigAgent) {
 	for {
 		runtime.ReadMemStats(mem)
 		m.data = []models.Metrics{}
-		i := int64(PollCount)
-		m.data = append(m.data, models.Metrics{ID: "PollCount", MType: "counter", Delta: &i})
 		r := rand.Float64()
 		m.data = append(m.data, models.Metrics{ID: "RandomValue", MType: "gauge", Value: &r})
+		i := int64(PollCount)
+		m.data = append(m.data, models.Metrics{ID: "PollCount", MType: "counter", Delta: &i})
 		mf1 := float64(mem.Alloc)
 		m.data = append(m.data, models.Metrics{ID: "Alloc", MType: "gauge", Value: &mf1})
 		mf2 := float64(mem.BuckHashSys)
