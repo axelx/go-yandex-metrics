@@ -78,7 +78,7 @@ func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
 
 		// проверяем, что клиент отправил серверу сжатые данные в формате mgzip
 		contentEncoding := req.Header.Get("Content-Encoding")
-		sendsGzip := strings.Contains(contentEncoding, "mgzip")
+		sendsGzip := strings.Contains(contentEncoding, "gzip")
 		if sendsGzip {
 			// оборачиваем тело запроса в io.Reader с поддержкой декомпрессии
 			cr, err := mgzip.NewCompressReader(req.Body)
