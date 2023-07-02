@@ -25,6 +25,7 @@ func New() Metric {
 }
 
 func (m *Metric) Report(c config.ConfigAgent) {
+	m.Poll(c)
 	for {
 		//производим опрос/обновление метрик
 		m.Poll(c)
