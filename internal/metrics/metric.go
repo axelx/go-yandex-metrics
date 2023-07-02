@@ -2,12 +2,14 @@ package metrics
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"io"
 	"math/rand"
+	"net/http"
 	"runtime"
 	"time"
 )
@@ -33,7 +35,17 @@ func (m *Metric) Report(c config.ConfigAgent) {
 			if err != nil {
 				fmt.Printf("Error metricsJSON: %s\n", err)
 			}
-			resp, err := c.Client.Post(c.BaseURL, "application/json", bytes.NewBuffer(metricsJSON))
+
+			buf := bytes.NewBuffer(nil)
+			zb := gzip.NewWriter(buf)
+			_, err = zb.Write([]byte(metricsJSON))
+			err = zb.Close()
+
+			req, _ := http.NewRequest("POST", c.BaseURL, buf)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Encoding", "gzip")
+			resp, _ := c.Client.Do(req)
+
 			if err != nil {
 				fmt.Println("Error reporting metrics:", err, string(metricsJSON))
 			} else {

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
+	"github.com/axelx/go-yandex-metrics/internal/mgzip"
+	"github.com/axelx/go-yandex-metrics/internal/middleware"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/service"
 	"github.com/go-chi/chi/v5"
@@ -13,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type keeper interface {
@@ -47,13 +50,51 @@ func (h *handler) Router(flagLogLevel string) chi.Router {
 	r := chi.NewRouter()
 
 	r.Get("/", logger.RequestLogger(h.GetAllMetrics()))
-	r.Post("/update/", logger.RequestLogger(h.UpdatedJSONMetric()))
-	r.Post("/value/", logger.RequestLogger(h.GetJSONMetric()))
+	r.Post("/update/", logger.RequestLogger(GzipMiddleware(h.UpdatedJSONMetric())))
+	r.Post("/value/", logger.RequestLogger(GzipMiddleware(h.GetJSONMetric())))
 
 	r.Post("/update/{typeM}/{nameM}/{valueM}", logger.RequestLogger(h.UpdatedMetric()))
 	r.Get("/value/{typeM}/{nameM}", logger.RequestLogger(h.GetMetric()))
 
 	return r
+}
+
+func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) {
+		// по умолчанию устанавливаем оригинальный http.ResponseWriter как тот,
+		// который будем передавать следующей функции
+		ow := res
+
+		// проверяем, что клиент умеет получать от сервера сжатые данные в формате mgzip
+		acceptEncoding := req.Header.Get("Accept-Encoding")
+		supportsGzip := strings.Contains(acceptEncoding, "gzip")
+		if supportsGzip {
+			// оборачиваем оригинальный http.ResponseWriter новым с поддержкой сжатия
+			cw := mgzip.NewCompressWriter(res)
+			// меняем оригинальный http.ResponseWriter на новый
+			ow = cw
+			// не забываем отправить клиенту все сжатые данные после завершения middleware
+			defer cw.Close()
+		}
+
+		// проверяем, что клиент отправил серверу сжатые данные в формате mgzip
+		contentEncoding := req.Header.Get("Content-Encoding")
+		sendsGzip := strings.Contains(contentEncoding, "mgzip")
+		if sendsGzip {
+			// оборачиваем тело запроса в io.Reader с поддержкой декомпрессии
+			cr, err := mgzip.NewCompressReader(req.Body)
+			if err != nil {
+				res.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			// меняем тело запроса на новое
+			req.Body = cr
+			defer cr.Close()
+		}
+
+		// передаём управление хендлеру
+		h.ServeHTTP(ow, req)
+	}
 }
 
 func (h *handler) UpdatedMetric() http.HandlerFunc {
