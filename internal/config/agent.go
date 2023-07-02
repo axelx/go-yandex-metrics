@@ -3,7 +3,6 @@ package config
 import (
 	"flag"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -37,13 +36,13 @@ func NewLoggingRoundTripper(next http.RoundTripper) *LoggingRoundTripper {
 func (rt *LoggingRoundTripper) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	defer func(begin time.Time) {
 
-		bodyReq, _ := io.ReadAll(req.Body)
-		req.Body.Close()
-		//todo как прочитть боди реквест ?
-
-		bodyResp, _ := io.ReadAll(resp.Body)
-		fmt.Printf("LoggingRoundTripper method=%s host=%s  bodyReq=%s status_code=%d  bodyResp=%s err=%v took=%s\n\n",
-			req.Method, req.URL.Host, bodyReq, resp.StatusCode, bodyResp, err, time.Since(begin),
+		//bodyReq, _ := io.ReadAll(req.Body)
+		//req.Body.Close()
+		////todo как прочитть боди реквест ?
+		//
+		//bodyResp, _ := io.ReadAll(resp.Body)
+		fmt.Printf("LoggingRoundTripper method=%s host=%s  bodyReq= status_code=%d  bodyResp= err=%v took=%s\n\n",
+			req.Method, req.URL.Host, resp.StatusCode, err, time.Since(begin),
 		)
 	}(time.Now())
 
