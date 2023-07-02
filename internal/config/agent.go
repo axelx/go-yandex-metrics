@@ -2,11 +2,9 @@ package config
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 )
 
 type ConfigAgentFlag struct {
@@ -23,31 +21,31 @@ type ConfigAgent struct {
 }
 
 // ////// middleware
-type LoggingRoundTripper struct {
-	next http.RoundTripper
-}
-
-func NewLoggingRoundTripper(next http.RoundTripper) *LoggingRoundTripper {
-	return &LoggingRoundTripper{
-		next: next,
-	}
-}
-
-func (rt *LoggingRoundTripper) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	defer func(begin time.Time) {
-
-		//bodyReq, _ := io.ReadAll(req.Body)
-		//req.Body.Close()
-		////todo как прочитть боди реквест ?
-		//
-		//bodyResp, _ := io.ReadAll(resp.Body)
-		fmt.Printf("LoggingRoundTripper method=%s host=%s  bodyReq= status_code=%d  bodyResp= err=%v took=%s\n\n",
-			req.Method, req.URL.Host, resp.StatusCode, err, time.Since(begin),
-		)
-	}(time.Now())
-
-	return rt.next.RoundTrip(req)
-}
+//type LoggingRoundTripper struct {
+//	next http.RoundTripper
+//}
+//
+//func NewLoggingRoundTripper(next http.RoundTripper) *LoggingRoundTripper {
+//	return &LoggingRoundTripper{
+//		next: next,
+//	}
+//}
+//
+//func (rt *LoggingRoundTripper) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+//	defer func(begin time.Time) {
+//
+//		//bodyReq, _ := io.ReadAll(req.Body)
+//		//req.Body.Close()
+//		////todo как прочитть боди реквест ?
+//		//
+//		//bodyResp, _ := io.ReadAll(resp.Body)
+//		fmt.Printf("LoggingRoundTripper method=%s host=%s  bodyReq= status_code=%d  bodyResp= err=%v took=%s\n\n",
+//			req.Method, req.URL.Host, resp.StatusCode, err, time.Since(begin),
+//		)
+//	}(time.Now())
+//
+//	return rt.next.RoundTrip(req)
+//}
 
 func NewConfigAgent() ConfigAgent {
 
@@ -60,7 +58,7 @@ func NewConfigAgent() ConfigAgent {
 
 	var rt http.RoundTripper
 	rt = http.DefaultTransport
-	rt = NewLoggingRoundTripper(rt)
+	//rt = NewLoggingRoundTripper(rt)
 
 	confDefault := ConfigAgent{
 		Client: &http.Client{
