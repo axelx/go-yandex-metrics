@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
@@ -35,14 +34,15 @@ func (m *Metric) Report(c config.ConfigAgent) {
 				fmt.Printf("Error metricsJSON: %s\n", err)
 			}
 
-			buf := bytes.NewBuffer(nil)
-			zb := gzip.NewWriter(buf)
-			_, err = zb.Write([]byte(metricsJSON))
-			zb.Close()
+			buf := bytes.NewBuffer(metricsJSON)
+			//buf := bytes.NewBuffer(nil)
+			//zb := gzip.NewWriter(buf)
+			//_, err = zb.Write([]byte(metricsJSON))
+			//zb.Close()
 
 			req, _ := http.NewRequest("POST", c.BaseURL, buf)
 			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Content-Encoding", "gzip")
+			//req.Header.Set("Content-Encoding", "gzip")
 			resp, _ := c.Client.Do(req)
 
 			if err != nil {
