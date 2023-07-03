@@ -3,6 +3,7 @@ package storage
 import (
 	"errors"
 	"fmt"
+	"github.com/axelx/go-yandex-metrics/internal/models"
 	"reflect"
 	"strconv"
 )
@@ -46,6 +47,39 @@ func (m *MemStorage) GetMetric(typeMetric, nameMetric string) (string, error) {
 		return strconv.FormatInt(v, 10), nil
 	default:
 		return "метрика не найдена", err
+	}
+}
+
+func (m *MemStorage) SetJSONGauge(nameMetric string, data *float64) error {
+	m.gauge[nameMetric] = *data
+	return nil
+}
+
+func (m *MemStorage) SetJSONCounter(nameMetric string, data *int64) error {
+	m.counter[nameMetric] += *data
+	return nil
+}
+
+func (m *MemStorage) GetJSONMetric(typeMetric, nameMetric string) (models.Metrics, error) {
+	err := errors.New("не найдена метрика")
+	mt := models.Metrics{}
+	switch typeMetric {
+	case "gauge":
+		v, t := m.gauge[nameMetric]
+		if !t {
+			return mt, err
+		}
+		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Value: &v}
+		return mt, nil
+	case "counter":
+		v, t := m.counter[nameMetric]
+		if !t {
+			return mt, err
+		}
+		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Delta: &v}
+		return mt, nil
+	default:
+		return mt, err
 	}
 }
 
