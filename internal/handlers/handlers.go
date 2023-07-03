@@ -49,11 +49,13 @@ func (h *handler) Router(flagLogLevel string) chi.Router {
 	r := chi.NewRouter()
 
 	r.Get("/", logger.RequestLogger(mgzip.GzipHandle(h.GetAllMetrics())))
+	//r.Get("/", logger.RequestLogger(h.GetAllMetrics()))
 	r.Post("/update/", logger.RequestLogger(GzipMiddleware(h.UpdatedJSONMetric())))
 	r.Post("/value/", logger.RequestLogger(GzipMiddleware(h.GetJSONMetric())))
 
 	r.Post("/update/{typeM}/{nameM}/{valueM}", logger.RequestLogger(h.UpdatedMetric()))
-	r.Get("/value/{typeM}/{nameM}", logger.RequestLogger(h.GetMetric()))
+	r.Get("/value/{typeM}/{nameM}", middleware.TestMiddleware(logger.RequestLogger(h.GetMetric())))
+	//logger.RequestLogger(gzipMiddleware(webhook))
 
 	return r
 }
@@ -272,7 +274,8 @@ func (h *handler) GetAllMetrics() http.HandlerFunc {
 		buf := bytes.NewBuffer(nil)
 		ioWriter := io.MultiWriter(res, buf)
 
-		tmpl := template.Must(template.ParseFiles("../../internal/handlers/layout.html"))
+		//tmpl := template.Must(template.ParseFiles("../../internal/handlers/layout.html"))
+		tmpl := template.Must(template.New("html-tmpl").Parse("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Title</title>\n</head>\n<body>\n<h1>Метрики</h1>\n\n<h2>Gauge</h2>\n<ul>\n    {{range $name, $val := .Gauge}}\n    <li>{{$name}} - {{$val}}</li>`\n    {{end}}\n</ul>\n\n<h2>Counter</h2>\n<ul>\n    {{range $name, $val := .Counter}}\n    <li>{{$name}} - {{$val}}</li>`\n    {{end}}\n</ul>\n\n</body>\n</html>"))
 
 		tmpl.Execute(ioWriter, struct {
 			Gauge   interface{}
