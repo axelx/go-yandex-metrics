@@ -38,6 +38,9 @@ func (m *Metric) Report(c config.ConfigAgent) {
 			buf := bytes.NewBuffer(nil)
 			zb := gzip.NewWriter(buf)
 			_, err = zb.Write([]byte(metricsJSON))
+			if err != nil {
+				fmt.Println("Error", err)
+			}
 			zb.Close()
 
 			req, err := http.NewRequest("POST", c.BaseURL, buf)

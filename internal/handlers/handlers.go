@@ -48,7 +48,7 @@ func (h *handler) Router(flagLogLevel string) chi.Router {
 
 	r := chi.NewRouter()
 
-	r.Get("/", logger.RequestLogger(h.GetAllMetrics()))
+	r.Get("/", logger.RequestLogger(mgzip.GzipHandle(h.GetAllMetrics())))
 	r.Post("/update/", logger.RequestLogger(GzipMiddleware(h.UpdatedJSONMetric())))
 	r.Post("/value/", logger.RequestLogger(GzipMiddleware(h.GetJSONMetric())))
 
