@@ -56,8 +56,7 @@ func NewConfigAgent() ConfigAgent {
 	}
 	parseFlagsAgent(&cf)
 
-	var rt http.RoundTripper
-	rt = http.DefaultTransport
+	var rt = http.DefaultTransport
 	//rt = NewLoggingRoundTripper(rt)
 
 	confDefault := ConfigAgent{
