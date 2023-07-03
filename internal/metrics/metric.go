@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
@@ -33,22 +34,25 @@ func (m *Metric) Report(c config.ConfigAgent) {
 				fmt.Printf("Error metricsJSON: %s\n", err)
 			}
 
-			buf := bytes.NewBuffer(metricsJSON)
-			//buf := bytes.NewBuffer(nil)
-			//zb := gzip.NewWriter(buf)
-			//_, err = zb.Write([]byte(metricsJSON))
-			//zb.Close()
+			//buf := bytes.NewBuffer(metricsJSON)
+			buf := bytes.NewBuffer(nil)
+			zb := gzip.NewWriter(buf)
+			_, err = zb.Write([]byte(metricsJSON))
+			zb.Close()
 
 			req, err := http.NewRequest("POST", c.BaseURL, buf)
+			if err != nil {
+				fmt.Println("Error reporting metrics:", err)
+			}
 			req.Header.Set("Content-Type", "application/json")
-			//req.Header.Set("Content-Encoding", "gzip")
+			req.Header.Set("Content-Encoding", "gzip")
 			resp, err := c.Client.Do(req)
 
 			if err != nil {
 				fmt.Println("Error reporting metrics:", err, string(metricsJSON))
 			} else {
 				//body, _ := io.ReadAll(resp.Body)
-				defer resp.Body.Close()
+				resp.Body.Close()
 
 				fmt.Printf("Metrics sent successfully! Send body: %s, Response body: \n", string(metricsJSON))
 			}
