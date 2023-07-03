@@ -54,8 +54,7 @@ func (h *handler) Router(flagLogLevel string) chi.Router {
 	r.Post("/value/", logger.RequestLogger(GzipMiddleware(h.GetJSONMetric())))
 
 	r.Post("/update/{typeM}/{nameM}/{valueM}", logger.RequestLogger(h.UpdatedMetric()))
-	r.Get("/value/{typeM}/{nameM}", middleware.TestMiddleware(logger.RequestLogger(h.GetMetric())))
-	//logger.RequestLogger(gzipMiddleware(webhook))
+	r.Get("/value/{typeM}/{nameM}", logger.RequestLogger(h.GetMetric()))
 
 	return r
 }
