@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/models"
-	"io"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -40,18 +39,18 @@ func (m *Metric) Report(c config.ConfigAgent) {
 			//_, err = zb.Write([]byte(metricsJSON))
 			//zb.Close()
 
-			req, _ := http.NewRequest("POST", c.BaseURL, buf)
+			req, err := http.NewRequest("POST", c.BaseURL, buf)
 			req.Header.Set("Content-Type", "application/json")
 			//req.Header.Set("Content-Encoding", "gzip")
-			resp, _ := c.Client.Do(req)
+			resp, err := c.Client.Do(req)
 
 			if err != nil {
 				fmt.Println("Error reporting metrics:", err, string(metricsJSON))
 			} else {
-				body, _ := io.ReadAll(resp.Body)
+				//body, _ := io.ReadAll(resp.Body)
 				defer resp.Body.Close()
 
-				fmt.Printf("Metrics sent successfully! Send body: %s, Response body: %s\n", string(metricsJSON), body)
+				fmt.Printf("Metrics sent successfully! Send body: %s, Response body: \n", string(metricsJSON))
 			}
 		}
 
