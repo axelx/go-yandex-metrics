@@ -3,8 +3,8 @@ package storage
 import (
 	"errors"
 	"fmt"
-	"github.com/axelx/go-yandex-metrics/internal/m_os"
 	"github.com/axelx/go-yandex-metrics/internal/models"
+	"github.com/axelx/go-yandex-metrics/internal/mos"
 	"reflect"
 	"strconv"
 )
@@ -111,7 +111,7 @@ func (m *MemStorage) GetTypeMetric(t string) interface{} {
 func (m *MemStorage) FileUpdate(metric models.Metrics) {
 	sm := m.ReadFile()
 	sm = dataUpdateOrAdd(sm, metric)
-	m_os.SaveMetricsToFile(m.fileName, sm)
+	mos.SaveMetricsToFile(m.fileName, sm)
 }
 func dataUpdateOrAdd(sm []models.Metrics, metric models.Metrics) []models.Metrics {
 	addF := true
@@ -136,14 +136,14 @@ func dataUpdateOrAdd(sm []models.Metrics, metric models.Metrics) []models.Metric
 }
 
 func (m *MemStorage) ReadFile() []models.Metrics {
-	return m_os.ReadAllFile(m.fileName)
+	return mos.ReadAllFile(m.fileName)
 }
 func (m *MemStorage) SaveMetricToFile() error {
 	if m.fileName == "" {
 		return nil
 	}
 	sm := m.toModelMetric()
-	m_os.SaveMetricsToFile("/tmp/metrics-db.json", sm)
+	mos.SaveMetricsToFile("/tmp/metrics-db.json", sm)
 	return nil
 }
 

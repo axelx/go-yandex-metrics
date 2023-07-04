@@ -1,4 +1,4 @@
-package m_os
+package mos
 
 import (
 	"bufio"
