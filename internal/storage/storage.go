@@ -165,7 +165,11 @@ func (m *MemStorage) RestoreFromFile() {
 	sv := m.ReadFile()
 	fmt.Println("sv", m.restore)
 	for _, metric := range sv {
-		fmt.Println(metric)
+		if metric.Delta == nil {
+			fmt.Println("load:", metric.MType, metric.ID, *metric.Value)
+		} else {
+			fmt.Println("load:", metric.MType, metric.ID, *metric.Delta)
+		}
 		if metric.MType == "gauge" {
 			m.gauge[metric.ID] = *metric.Value
 		} else if metric.MType == "counter" {
