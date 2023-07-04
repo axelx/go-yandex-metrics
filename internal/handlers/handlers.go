@@ -44,7 +44,6 @@ func (h *handler) Router(flagLogLevel string) chi.Router {
 	if err := logger.Initialize(flagLogLevel); err != nil {
 		panic(err)
 	}
-	fmt.Println("conf.FlagLogLevel ", flagLogLevel)
 
 	r := chi.NewRouter()
 
