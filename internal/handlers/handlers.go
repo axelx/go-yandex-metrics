@@ -248,8 +248,7 @@ func (h *handler) GetJSONMetric() http.HandlerFunc {
 
 		metric, err := h.memStorage.GetJSONMetric(metrics.MType, metrics.ID)
 		if err != nil {
-			//http.Error(res, "StatusNotFound", http.StatusNotFound)
-			http.Error(res, "{}", http.StatusOK)
+			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
 		}
 
