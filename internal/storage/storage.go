@@ -143,7 +143,7 @@ func (m *MemStorage) SaveMetricToFile() error {
 		return nil
 	}
 	sm := m.toModelMetric()
-	mos.SaveMetricsToFile("/tmp/metrics-db.json", sm)
+	mos.SaveMetricsToFile(m.fileName, sm)
 	return nil
 }
 
