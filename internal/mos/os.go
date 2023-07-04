@@ -27,10 +27,6 @@ func NewProducer(filename string) (*Producer, error) {
 }
 
 func (p *Producer) WriteMetric(metric models.Metrics) error {
-
-	err := p.encoder.Encode(metric)
-	return err
-
 	return p.encoder.Encode(&metric)
 }
 
