@@ -89,7 +89,7 @@ func ReadAllFile(fileName string) []models.Metrics {
 	}
 	file, err := os.Open(fileName)
 	if err != nil {
-		fmt.Println("-Open file err", err)
+		fmt.Println("Open file err", err)
 		return nil
 	}
 	defer file.Close()

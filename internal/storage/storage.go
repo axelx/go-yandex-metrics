@@ -10,20 +10,20 @@ import (
 )
 
 type MemStorage struct {
-	gauge           map[string]float64 //новое значение должно замещать предыдущее.
-	counter         map[string]int64   //новое значение должно добавляться к предыдущему, если какое-то значение уже было известно серверу.
-	fileName        string
-	UpdateInterval  int
-	restoreFromFile bool
+	gauge          map[string]float64 //новое значение должно замещать предыдущее.
+	counter        map[string]int64   //новое значение должно добавляться к предыдущему, если какое-то значение уже было известно серверу.
+	fileName       string
+	UpdateInterval int
+	restore        bool
 }
 
 func New(filename string, updateInterval int, restoreFromFile bool) MemStorage {
 	return MemStorage{
-		gauge:           map[string]float64{},
-		counter:         map[string]int64{},
-		fileName:        filename,
-		UpdateInterval:  updateInterval,
-		restoreFromFile: restoreFromFile,
+		gauge:          map[string]float64{},
+		counter:        map[string]int64{},
+		fileName:       filename,
+		UpdateInterval: updateInterval,
+		restore:        restoreFromFile,
 	}
 }
 
@@ -159,11 +159,11 @@ func (m *MemStorage) toModelMetric() []models.Metrics {
 }
 
 func (m *MemStorage) RestoreFromFile() {
-	if m.restoreFromFile == false {
+	if !m.restore {
 		return
 	}
 	sv := m.ReadFile()
-	fmt.Println("sv", m.restoreFromFile)
+	fmt.Println("sv", m.restore)
 	for _, metric := range sv {
 		fmt.Println(metric)
 		if metric.MType == "gauge" {
