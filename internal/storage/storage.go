@@ -150,10 +150,12 @@ func (m *MemStorage) SaveMetricToFile() error {
 func (m *MemStorage) toModelMetric() []models.Metrics {
 	metrics := []models.Metrics{}
 	for n, v := range m.gauge {
-		metrics = append(metrics, models.Metrics{ID: n, MType: "gauge", Value: &v})
+		vt := v
+		metrics = append(metrics, models.Metrics{ID: n, MType: "gauge", Value: &vt})
 	}
 	for n, v := range m.counter {
-		metrics = append(metrics, models.Metrics{ID: n, MType: "counter", Delta: &v})
+		vt := v
+		metrics = append(metrics, models.Metrics{ID: n, MType: "counter", Delta: &vt})
 	}
 	return metrics
 }
