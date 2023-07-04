@@ -20,7 +20,7 @@ func NewConfigServer() ConfigServerFlag {
 		FlagLogLevel:        "",
 		FlagStoreInternal:   0,
 		FlagFileStoragePath: "",
-		FlagRestore:         false,
+		FlagRestore:         true,
 	}
 	parseFlagsServer(&conf)
 

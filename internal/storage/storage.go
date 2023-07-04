@@ -10,18 +10,20 @@ import (
 )
 
 type MemStorage struct {
-	gauge          map[string]float64 //новое значение должно замещать предыдущее.
-	counter        map[string]int64   //новое значение должно добавляться к предыдущему, если какое-то значение уже было известно серверу.
-	fileName       string
-	UpdateInterval int
+	gauge           map[string]float64 //новое значение должно замещать предыдущее.
+	counter         map[string]int64   //новое значение должно добавляться к предыдущему, если какое-то значение уже было известно серверу.
+	fileName        string
+	UpdateInterval  int
+	restoreFromFile bool
 }
 
-func New(filename string, ui int) MemStorage {
+func New(filename string, updateInterval int, restoreFromFile bool) MemStorage {
 	return MemStorage{
-		gauge:          map[string]float64{},
-		counter:        map[string]int64{},
-		fileName:       filename,
-		UpdateInterval: ui,
+		gauge:           map[string]float64{},
+		counter:         map[string]int64{},
+		fileName:        filename,
+		UpdateInterval:  updateInterval,
+		restoreFromFile: restoreFromFile,
 	}
 }
 
@@ -58,7 +60,6 @@ func (m *MemStorage) GetMetric(typeMetric, nameMetric string) (string, error) {
 func (m *MemStorage) SetJSONGauge(nameMetric string, data *float64) error {
 	m.gauge[nameMetric] = *data
 	if m.UpdateInterval == 0 {
-		fmt.Println("SetJSONGauge", *data)
 		m.FileUpdate(models.Metrics{ID: nameMetric, MType: "gauge", Value: data})
 	}
 	return nil
@@ -135,10 +136,12 @@ func dataUpdateOrAdd(sm []models.Metrics, metric models.Metrics) []models.Metric
 }
 
 func (m *MemStorage) ReadFile() []models.Metrics {
-	sm := m_os.ReadAllFile(m.fileName)
-	return sm
+	return m_os.ReadAllFile(m.fileName)
 }
 func (m *MemStorage) SaveMetricToFile() error {
+	if m.fileName == "" {
+		return nil
+	}
 	sm := m.toModelMetric()
 	m_os.SaveMetricsToFile("/tmp/metrics-db.json", sm)
 	return nil
@@ -153,4 +156,20 @@ func (m *MemStorage) toModelMetric() []models.Metrics {
 		metrics = append(metrics, models.Metrics{ID: n, MType: "counter", Delta: &v})
 	}
 	return metrics
+}
+
+func (m *MemStorage) RestoreFromFile() {
+	if m.restoreFromFile == false {
+		return
+	}
+	sv := m.ReadFile()
+	fmt.Println("sv", m.restoreFromFile)
+	for _, metric := range sv {
+		fmt.Println(metric)
+		if metric.MType == "gauge" {
+			m.gauge[metric.ID] = *metric.Value
+		} else if metric.MType == "counter" {
+			m.counter[metric.ID] = *metric.Delta
+		}
+	}
 }

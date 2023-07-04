@@ -84,7 +84,9 @@ func SaveMetricsToFile(fileName string, metrics []models.Metrics) error {
 	return nil
 }
 func ReadAllFile(fileName string) []models.Metrics {
-
+	if fileName == "" {
+		return nil
+	}
 	file, err := os.Open(fileName)
 	if err != nil {
 		fmt.Println("-Open file err", err)

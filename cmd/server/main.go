@@ -14,8 +14,8 @@ import (
 func main() {
 
 	conf := config.NewConfigServer()
-	metricStorage := storage.New(conf.FlagFileStoragePath, conf.FlagStoreInternal)
-	metricStorage.ReadFile()
+	metricStorage := storage.New(conf.FlagFileStoragePath, conf.FlagStoreInternal, conf.FlagRestore)
+	metricStorage.RestoreFromFile()
 	go updateMemstorage(metricStorage)
 
 	logger.Log.Info("Running server", zap.String("address", conf.FlagRunAddr))
