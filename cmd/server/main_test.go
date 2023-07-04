@@ -29,7 +29,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 }
 
 func TestGetMetric(t *testing.T) {
-	m := storage.New()
+	m := storage.New("", 300, false)
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
@@ -54,7 +54,7 @@ func TestGetMetric(t *testing.T) {
 }
 
 func TestUpdatedMetric(t *testing.T) {
-	m := storage.New()
+	m := storage.New("", 300, false)
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
@@ -103,7 +103,7 @@ func testJSONRequest(t *testing.T, ts *httptest.Server, method, path string, bod
 }
 
 func TestGetJsonMetric(t *testing.T) {
-	m := storage.New()
+	m := storage.New("", 300, false)
 	g := 5.5
 	c := int64(5)
 	m.SetJSONGauge("HeapAlloc", &g)
@@ -143,7 +143,7 @@ func TestGetJsonMetric(t *testing.T) {
 }
 
 func TestJsonUpdatedMetric(t *testing.T) {
-	m := storage.New()
+	m := storage.New("", 300, false)
 	g := 5.5
 	c := int64(5)
 	m.SetJSONGauge("HeapAlloc", &g)

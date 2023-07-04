@@ -42,15 +42,15 @@ func parseFlagsServer(c *ConfigServerFlag) {
 	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
 		c.FlagLogLevel = envLogLevel
 	}
-	if envStoreInternal := os.Getenv("LOG_LEVEL"); envStoreInternal != "" {
+	if envStoreInternal := os.Getenv("STORE_INTERVAL"); envStoreInternal != "" {
 		if v, err := strconv.Atoi(envStoreInternal); err == nil {
 			c.FlagStoreInternal = v
 		}
 	}
-	if envFileStoragePath := os.Getenv("LOG_LEVEL"); envFileStoragePath != "" {
+	if envFileStoragePath := os.Getenv("FILE_STORAGE_PATH"); envFileStoragePath != "" {
 		c.FlagFileStoragePath = envFileStoragePath
 	}
-	if envRestore := os.Getenv("LOG_LEVEL"); envRestore != "" {
+	if envRestore := os.Getenv("RESTORE"); envRestore != "" {
 		if v, err := strconv.ParseBool(envRestore); err == nil {
 			c.FlagRestore = v
 		}
