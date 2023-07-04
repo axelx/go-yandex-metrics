@@ -33,7 +33,7 @@ func updateMemstorage(metricStorage storage.MemStorage) {
 	}
 	for {
 		metricStorage.SaveMetricToFile()
-		fmt.Println("loop")
+		fmt.Println("updateMemstorage from file ")
 		time.Sleep(time.Duration(metricStorage.UpdateInterval) * time.Second)
 	}
 }
