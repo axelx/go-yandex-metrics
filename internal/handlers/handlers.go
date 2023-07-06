@@ -56,7 +56,6 @@ func (h *handler) Router(log *zap.Logger) chi.Router {
 
 func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-
 		acceptEncoding := req.Header.Get("Accept-Encoding")
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
 		if supportsGzip {
@@ -65,6 +64,17 @@ func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			defer cw.Close()
 		}
 
+		contentEncoding := req.Header.Get("Content-Encoding")
+		sendsGzip := strings.Contains(contentEncoding, "gzip")
+		if sendsGzip {
+			cr, err := mgzip.NewCompressReader(req.Body)
+			if err != nil {
+				res.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			req.Body = cr
+			defer cr.Close()
+		}
 		h.ServeHTTP(res, req)
 	}
 }
