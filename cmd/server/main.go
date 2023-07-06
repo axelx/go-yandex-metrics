@@ -19,8 +19,7 @@ func main() {
 	//go updateMemstorage(metricStorage)
 
 	lg := logger.Initialize("info")
-	lg.Info("Running server", zap.String("address", conf.FlagRunAddr))
-	fmt.Println("conf", conf)
+	lg.Info("Running server", zap.String("config", conf.String()))
 
 	hd := handlers.New(&metricStorage)
 	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router(lg)); err != nil {

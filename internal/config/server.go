@@ -2,11 +2,12 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strconv"
 )
 
-type ConfigServerFlag struct {
+type ConfigServer struct {
 	FlagRunAddr         string
 	FlagLogLevel        string
 	FlagStoreInternal   int
@@ -14,8 +15,13 @@ type ConfigServerFlag struct {
 	FlagRestore         bool
 }
 
-func NewConfigServer() ConfigServerFlag {
-	conf := ConfigServerFlag{
+func (c *ConfigServer) String() string {
+	return fmt.Sprintf("FlagRunAddr: %s, FlagLogLevel: %s, FlagStoreInternal: %s, FlagFileStoragePath: %s, FlagRestore: %s",
+		c.FlagRunAddr, c.FlagLogLevel, c.FlagStoreInternal, c.FlagFileStoragePath, c.FlagRestore)
+}
+
+func NewConfigServer() *ConfigServer {
+	conf := ConfigServer{
 		FlagRunAddr:         "",
 		FlagLogLevel:        "",
 		FlagStoreInternal:   0,
@@ -24,10 +30,10 @@ func NewConfigServer() ConfigServerFlag {
 	}
 	parseFlagsServer(&conf)
 
-	return conf
+	return &conf
 }
 
-func parseFlagsServer(c *ConfigServerFlag) {
+func parseFlagsServer(c *ConfigServer) {
 	flag.StringVar(&c.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&c.FlagLogLevel, "l", "info", "log level")
 	flag.IntVar(&c.FlagStoreInternal, "i", 300, "STORE_INTERVAL int")
