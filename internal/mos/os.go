@@ -46,9 +46,9 @@ func NewConsumer(filename string) (*DataEncode, error) {
 	}, nil
 }
 
-func (c *DataEncode) ReadMetric() (*models.Metrics, error) {
+func (p *DataEncode) ReadMetric() (*models.Metrics, error) {
 	metric := &models.Metrics{}
-	if err := c.decoder.Decode(&metric); err != nil {
+	if err := p.decoder.Decode(&metric); err != nil {
 		return nil, err
 	}
 	return metric, nil
