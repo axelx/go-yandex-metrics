@@ -16,7 +16,7 @@ type ConfigServer struct {
 }
 
 func (c *ConfigServer) String() string {
-	return fmt.Sprintf("FlagRunAddr: %s, FlagLogLevel: %s, FlagStoreInternal: %s, FlagFileStoragePath: %s, FlagRestore: %s",
+	return fmt.Sprintf("FlagRunAddr: %s, FlagLogLevel: %s, FlagStoreInternal: %v, FlagFileStoragePath: %s, FlagRestore: %v",
 		c.FlagRunAddr, c.FlagLogLevel, c.FlagStoreInternal, c.FlagFileStoragePath, c.FlagRestore)
 }
 
