@@ -9,57 +9,49 @@ import (
 	"os"
 )
 
-type Producer struct {
+type DataEncode struct {
 	file    *os.File
 	encoder *json.Encoder
+	decoder *json.Decoder
 }
 
-func NewProducer(filename string) (*Producer, error) {
+func NewProducer(filename string) (*DataEncode, error) {
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Producer{
+	return &DataEncode{
 		file:    file,
 		encoder: json.NewEncoder(file),
 	}, nil
 }
 
-func (p *Producer) WriteMetric(metric models.Metrics) error {
+func (p *DataEncode) WriteMetric(metric models.Metrics) error {
 	return p.encoder.Encode(&metric)
 }
 
-func (p *Producer) Close() error {
+func (p *DataEncode) Close() error {
 	return p.file.Close()
 }
 
-type Consumer struct {
-	file    *os.File
-	decoder *json.Decoder
-}
-
-func NewConsumer(filename string) (*Consumer, error) {
+func NewConsumer(filename string) (*DataEncode, error) {
 	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return nil, err
 	}
-	return &Consumer{
+	return &DataEncode{
 		file:    file,
 		decoder: json.NewDecoder(file),
 	}, nil
 }
 
-func (c *Consumer) ReadMetric() (*models.Metrics, error) {
+func (c *DataEncode) ReadMetric() (*models.Metrics, error) {
 	metric := &models.Metrics{}
 	if err := c.decoder.Decode(&metric); err != nil {
 		return nil, err
 	}
 	return metric, nil
-}
-
-func (c *Consumer) Close() error {
-	return c.file.Close()
 }
 
 func SaveMetricsToFile(fileName string, metrics []models.Metrics) error {
