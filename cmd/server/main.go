@@ -16,13 +16,14 @@ func main() {
 	conf := config.NewConfigServer()
 	metricStorage := storage.New(conf.FlagFileStoragePath, conf.FlagStoreInternal, conf.FlagRestore)
 	metricStorage.RestoreFromFile()
-	go updateMemstorage(metricStorage)
+	//go updateMemstorage(metricStorage)
 
-	logger.Log.Info("Running server", zap.String("address", conf.FlagRunAddr))
+	lg := logger.Initialize("info")
+	lg.Info("Running server", zap.String("address", conf.FlagRunAddr))
 	fmt.Println("conf", conf)
 
 	hd := handlers.New(&metricStorage)
-	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router(conf.FlagLogLevel)); err != nil {
+	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router(lg)); err != nil {
 		panic(err)
 	}
 }

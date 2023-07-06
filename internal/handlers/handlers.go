@@ -7,10 +7,10 @@ import (
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/mgzip"
 	"github.com/axelx/go-yandex-metrics/internal/models"
+	"github.com/axelx/go-yandex-metrics/internal/mtemplate"
 	"github.com/axelx/go-yandex-metrics/internal/service"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
-	"html/template"
 	"io"
 	"net/http"
 	"strconv"
@@ -39,21 +39,17 @@ func New(k keeper) handler {
 	}
 }
 
-func (h *handler) Router(flagLogLevel string) chi.Router {
-
-	if err := logger.Initialize(flagLogLevel); err != nil {
-		panic(err)
-	}
+func (h *handler) Router(log *zap.Logger) chi.Router {
 
 	r := chi.NewRouter()
+	r.Use(logger.RequestLogger(log))
 
-	r.Get("/", logger.RequestLogger(mgzip.GzipHandle(h.GetAllMetrics())))
-	//r.Get("/", logger.RequestLogger(h.GetAllMetrics()))
-	r.Post("/update/", logger.RequestLogger(GzipMiddleware(h.UpdatedJSONMetric())))
-	r.Post("/value/", logger.RequestLogger(GzipMiddleware(h.GetJSONMetric())))
+	r.Post("/update/{typeM}/{nameM}/{valueM}", h.UpdatedMetric(log))
+	r.Get("/value/{typeM}/{nameM}", h.GetMetric(log))
 
-	r.Post("/update/{typeM}/{nameM}/{valueM}", logger.RequestLogger(h.UpdatedMetric()))
-	r.Get("/value/{typeM}/{nameM}", logger.RequestLogger(h.GetMetric()))
+	r.Get("/", mgzip.GzipHandle(h.GetAllMetrics(log)))
+	r.Post("/update/", GzipMiddleware(h.UpdatedJSONMetric(log)))
+	r.Post("/value/", GzipMiddleware(h.GetJSONMetric(log)))
 
 	return r
 }
@@ -96,7 +92,7 @@ func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (h *handler) UpdatedMetric() http.HandlerFunc {
+func (h *handler) UpdatedMetric(log *zap.Logger) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		typeM := chi.URLParam(req, "typeM")
 		nameM := chi.URLParam(req, "nameM")
@@ -135,18 +131,21 @@ func (h *handler) UpdatedMetric() http.HandlerFunc {
 			return
 		}
 
-		size, _ := res.Write([]byte(valueM))
+		size, err := res.Write([]byte(valueM))
+		if err != nil {
+			fmt.Println("в UpdatedMetric что-то пошло не так", err)
+		}
 
 		res.WriteHeader(http.StatusOK)
 
-		logger.Log.Info("sending HTTP response UpdatedMetric",
+		log.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
 	}
 }
 
-func (h *handler) GetMetric() http.HandlerFunc {
+func (h *handler) GetMetric(log *zap.Logger) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		typeM := chi.URLParam(req, "typeM")
 		nameM := chi.URLParam(req, "nameM")
@@ -166,21 +165,21 @@ func (h *handler) GetMetric() http.HandlerFunc {
 
 		res.WriteHeader(http.StatusOK)
 
-		logger.Log.Info("sending HTTP response UpdatedMetric",
+		log.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
 	}
 }
 
-func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
+func (h *handler) UpdatedJSONMetric(log *zap.Logger) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
-		logger.Log.Debug("decoding request")
+		log.Debug("decoding request")
 		var metrics models.Metrics
 		dec := json.NewDecoder(req.Body)
 		if err := dec.Decode(&metrics); err != nil {
-			logger.Log.Debug("cannot decode request JSON body", zap.Error(err))
+			log.Debug("cannot decode request JSON body", zap.Error(err))
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -223,20 +222,20 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 		res.WriteHeader(http.StatusOK)
 		size, _ := res.Write(metricsJSON)
 
-		logger.Log.Info("sending HTTP response UpdatedMetric",
+		log.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
 	}
 }
 
-func (h *handler) GetJSONMetric() http.HandlerFunc {
+func (h *handler) GetJSONMetric(log *zap.Logger) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
 		var metrics models.Metrics
 		dec := json.NewDecoder(req.Body)
 		if err := dec.Decode(&metrics); err != nil {
-			logger.Log.Debug("cannot decode request JSON body", zap.Error(err))
+			log.Debug("cannot decode request JSON body", zap.Error(err))
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -260,22 +259,21 @@ func (h *handler) GetJSONMetric() http.HandlerFunc {
 		res.WriteHeader(http.StatusOK)
 		size, _ := res.Write(metricsJSON)
 
-		logger.Log.Info("sending HTTP response UpdatedMetric",
+		log.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
 	}
 }
 
-func (h *handler) GetAllMetrics() http.HandlerFunc {
+func (h *handler) GetAllMetrics(log *zap.Logger) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		buf := bytes.NewBuffer(nil)
 		ioWriter := io.MultiWriter(res, buf)
 		res.Header().Set("Content-Type", "text/html")
 
-		//tmpl := template.Must(template.ParseFiles("../../internal/handlers/layout.html"))
-		tmpl := template.Must(template.New("html-tmpl").Parse("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Title</title>\n</head>\n<body>\n<h1>Метрики</h1>\n\n<h2>Gauge</h2>\n<ul>\n    {{range $name, $val := .Gauge}}\n    <li>{{$name}} - {{$val}}</li>`\n    {{end}}\n</ul>\n\n<h2>Counter</h2>\n<ul>\n    {{range $name, $val := .Counter}}\n    <li>{{$name}} - {{$val}}</li>`\n    {{end}}\n</ul>\n\n</body>\n</html>"))
-
+		//tmpl := mtemplate.Must(mtemplate.New("html-tmpl").Parse("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Title</title>\n</head>\n<body>\n<h1>Метрики</h1>\n\n<h2>Gauge</h2>\n<ul>\n    {{range $name, $val := .Gauge}}\n    <li>{{$name}} - {{$val}}</li>`\n    {{end}}\n</ul>\n\n<h2>Counter</h2>\n<ul>\n    {{range $name, $val := .Counter}}\n    <li>{{$name}} - {{$val}}</li>`\n    {{end}}\n</ul>\n\n</body>\n</html>"))
+		tmpl := mtemplate.MainTemplate()
 		tmpl.Execute(ioWriter, struct {
 			Gauge   interface{}
 			Counter interface{}
@@ -285,9 +283,10 @@ func (h *handler) GetAllMetrics() http.HandlerFunc {
 		})
 		tmplSize := len(buf.Bytes())
 
-		logger.Log.Info("sending HTTP response UpdatedMetric",
+		log.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(tmplSize)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
+			zap.String("about", "GetAllMetrics"),
 		)
 	}
 }
