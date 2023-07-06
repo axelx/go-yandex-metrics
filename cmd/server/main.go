@@ -16,7 +16,7 @@ func main() {
 	conf := config.NewConfigServer()
 	metricStorage := storage.New(conf.FlagFileStoragePath, conf.FlagStoreInternal, conf.FlagRestore)
 	metricStorage.RestoreFromFile()
-	//go updateMemstorage(metricStorage)
+	go updateMemstorage(metricStorage)
 
 	lg := logger.Initialize("info")
 	lg.Info("Running server", zap.String("config", conf.String()))
