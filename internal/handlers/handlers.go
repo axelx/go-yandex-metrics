@@ -64,9 +64,7 @@ func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			defer cw.Close()
 		}
 
-		contentEncoding := req.Header.Get("Content-Encoding")
-		sendsGzip := strings.Contains(contentEncoding, "gzip")
-		if sendsGzip {
+		if req.Header.Get("Content-Encoding") == "gzip" {
 			cr, err := mgzip.NewCompressReader(req.Body)
 			if err != nil {
 				res.WriteHeader(http.StatusInternalServerError)

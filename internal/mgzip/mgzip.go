@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"io"
 	"net/http"
-	"strings"
 )
 
 func GzipHandle(next http.HandlerFunc) http.HandlerFunc {
@@ -13,9 +12,8 @@ func GzipHandle(next http.HandlerFunc) http.HandlerFunc {
 		// это упрощённый пример. В реальном приложении следует проверять все
 		// значения r.Header.Values("Accept-Encoding") и разбирать строку
 		// на составные части, чтобы избежать неожиданных результатов
-		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			// если gzip не поддерживается, передаём управление
-			// дальше без изменений
+
+		if r.Header.Get("Accept-Encoding") != "gzip" {
 			next.ServeHTTP(w, r)
 			return
 		}
