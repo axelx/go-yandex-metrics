@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/mgzip"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/mtemplate"
+	"github.com/axelx/go-yandex-metrics/internal/pg"
 	"github.com/axelx/go-yandex-metrics/internal/service"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -39,7 +41,7 @@ func New(k keeper) handler {
 	}
 }
 
-func (h *handler) Router(log *zap.Logger) chi.Router {
+func (h *handler) Router(log *zap.Logger, conf *config.ConfigServer) chi.Router {
 
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger(log))
@@ -50,8 +52,38 @@ func (h *handler) Router(log *zap.Logger) chi.Router {
 	r.Get("/", mgzip.GzipHandle(h.GetAllMetrics(log)))
 	r.Post("/update/", GzipMiddleware(h.UpdatedJSONMetric(log)))
 	r.Post("/value/", GzipMiddleware(h.GetJSONMetric(log)))
+	r.Get("/ping", h.DbConnect(conf))
 
 	return r
+}
+
+func (h *handler) DbConnect(conf *config.ConfigServer) http.HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) {
+		if conf.FlagDatabaseDSN != "" {
+			newClient := pg.NewClient()
+
+			if err := newClient.Open(conf.FlagDatabaseDSN); err != nil {
+				fmt.Println("err not connect to db", err)
+			}
+
+			defer func() {
+				_ = newClient.Close()
+			}()
+
+			res.WriteHeader(http.StatusOK)
+			_, err := res.Write([]byte(""))
+			if err != nil {
+				fmt.Println("в DbConnect что-то пошло не так 1", err)
+			}
+
+		} else {
+			res.WriteHeader(http.StatusInternalServerError)
+			_, err := res.Write([]byte(""))
+			if err != nil {
+				fmt.Println("в DbConnect что-то пошло не так 2", err)
+			}
+		}
+	}
 }
 
 func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
