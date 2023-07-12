@@ -50,12 +50,12 @@ func (h *handler) Router(log *zap.Logger, databaseDSN string) chi.Router {
 	r.Get("/", mgzip.GzipHandle(h.GetAllMetrics(log)))
 	r.Post("/update/", GzipMiddleware(h.UpdatedJSONMetric(log)))
 	r.Post("/value/", GzipMiddleware(h.GetJSONMetric(log)))
-	r.Get("/ping", h.DbConnect(databaseDSN))
+	r.Get("/ping", h.DBConnect(databaseDSN))
 
 	return r
 }
 
-func (h *handler) DbConnect(databaseDSN string) http.HandlerFunc {
+func (h *handler) DBConnect(databaseDSN string) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		if databaseDSN != "" {
 			newClient := pg.NewClient()
