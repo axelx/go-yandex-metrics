@@ -30,10 +30,10 @@ RUN go mod download
 EXPOSE 1234
 
 
+#COPY ../docker/entrypoint.sh /entrypoint.sh
 
 RUN go get github.com/githubnemo/CompileDaemon
 RUN go install github.com/githubnemo/CompileDaemon
 
-
-
-
+#RUN chmod +x /entrypoint.sh
+#ENTRYPOINT "/entrypoint.sh"
