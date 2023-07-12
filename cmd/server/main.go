@@ -22,7 +22,7 @@ func main() {
 	go updateMemstorage(metricStorage)
 
 	hd := handlers.New(&metricStorage)
-	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router(lg)); err != nil {
+	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router(lg, conf.FlagDatabaseDSN)); err != nil {
 		panic(err)
 	}
 }

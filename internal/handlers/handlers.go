@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/mgzip"
 	"github.com/axelx/go-yandex-metrics/internal/models"
@@ -41,28 +40,27 @@ func New(k keeper) handler {
 	}
 }
 
-func (h *handler) Router(log *zap.Logger, conf *config.ConfigServer) chi.Router {
+func (h *handler) Router(log *zap.Logger, databaseDSN string) chi.Router {
 
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger(log))
 
 	r.Post("/update/{typeM}/{nameM}/{valueM}", h.UpdatedMetric(log))
 	r.Get("/value/{typeM}/{nameM}", h.GetMetric(log))
-
 	r.Get("/", mgzip.GzipHandle(h.GetAllMetrics(log)))
 	r.Post("/update/", GzipMiddleware(h.UpdatedJSONMetric(log)))
 	r.Post("/value/", GzipMiddleware(h.GetJSONMetric(log)))
-	r.Get("/ping", h.DbConnect(conf))
+	r.Get("/ping", h.DbConnect(databaseDSN))
 
 	return r
 }
 
-func (h *handler) DbConnect(conf *config.ConfigServer) http.HandlerFunc {
+func (h *handler) DbConnect(databaseDSN string) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		if conf.FlagDatabaseDSN != "" {
+		if databaseDSN != "" {
 			newClient := pg.NewClient()
 
-			if err := newClient.Open(conf.FlagDatabaseDSN); err != nil {
+			if err := newClient.Open(databaseDSN); err != nil {
 				fmt.Println("err not connect to db", err)
 			}
 

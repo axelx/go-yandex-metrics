@@ -35,7 +35,7 @@ func TestGetMetric(t *testing.T) {
 	m.SetCounter("PollCount", 5)
 
 	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router(logger.Initialize("info")))
+	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), ""))
 	defer ts.Close()
 
 	var testTable = []struct {
@@ -60,7 +60,7 @@ func TestUpdatedMetric(t *testing.T) {
 	m.SetCounter("PollCount", 5)
 
 	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router(logger.Initialize("info")))
+	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), ""))
 	defer ts.Close()
 
 	type want struct {
@@ -111,7 +111,7 @@ func TestGetJsonMetric(t *testing.T) {
 	m.SetJSONCounter("PollCount", &c)
 
 	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router(logger.Initialize("info")))
+	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), ""))
 	defer ts.Close()
 
 	var testTable = []struct {
@@ -151,7 +151,7 @@ func TestJsonUpdatedMetric(t *testing.T) {
 	m.SetJSONCounter("PollCount", &c)
 
 	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router(logger.Initialize("info")))
+	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), ""))
 	defer ts.Close()
 
 	type want struct {
