@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/mgzip"
@@ -40,34 +41,24 @@ func New(k keeper) handler {
 	}
 }
 
-func (h *handler) Router(log *zap.Logger, databaseDSN string) chi.Router {
+func (h *handler) Router(log *zap.Logger, client *pg.PgStorage) chi.Router {
 
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger(log))
 
 	r.Post("/update/{typeM}/{nameM}/{valueM}", h.UpdatedMetric(log))
 	r.Get("/value/{typeM}/{nameM}", h.GetMetric(log))
-	r.Get("/", mgzip.GzipHandle(h.GetAllMetrics(log)))
-	r.Post("/update/", GzipMiddleware(h.UpdatedJSONMetric(log)))
-	r.Post("/value/", GzipMiddleware(h.GetJSONMetric(log)))
-	r.Get("/ping", h.DBConnect(databaseDSN))
+	r.Get("/", mgzip.GzipHandle(h.GetAllMetrics(log, client)))
+	r.Post("/update/", GzipMiddleware(h.UpdatedJSONMetric(log, client)))
+	r.Post("/value/", GzipMiddleware(h.GetJSONMetric(log, client)))
+	r.Get("/ping", h.DBConnect(client))
 
 	return r
 }
 
-func (h *handler) DBConnect(databaseDSN string) http.HandlerFunc {
+func (h *handler) DBConnect(client *pg.PgStorage) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		if databaseDSN != "" {
-			newClient := pg.NewClient()
-
-			if err := newClient.Open(databaseDSN); err != nil {
-				fmt.Println("err not connect to db", err)
-			}
-
-			defer func() {
-				_ = newClient.Close()
-			}()
-
+		if client.DB != nil {
 			res.WriteHeader(http.StatusOK)
 			_, err := res.Write([]byte(""))
 			if err != nil {
@@ -187,7 +178,7 @@ func (h *handler) GetMetric(log *zap.Logger) http.HandlerFunc {
 	}
 }
 
-func (h *handler) UpdatedJSONMetric(log *zap.Logger) http.HandlerFunc {
+func (h *handler) UpdatedJSONMetric(log *zap.Logger, client *pg.PgStorage) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
 		log.Debug("decoding request")
@@ -199,31 +190,20 @@ func (h *handler) UpdatedJSONMetric(log *zap.Logger) http.HandlerFunc {
 			return
 		}
 
-		iz := int64(0)
-		fz := float64(0)
-		if metrics.MType == "" || metrics.ID == "" || (metrics.Delta == &iz && metrics.Value == &fz) {
+		deltaDefault := int64(0)
+		valueDefault := float64(0)
+		if metrics.MType == "" || metrics.ID == "" || (metrics.Delta == &deltaDefault && metrics.Value == &valueDefault) {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
 		}
-		switch metrics.MType {
-		case "gauge":
-			err := h.memStorage.SetJSONGauge(metrics.ID, metrics.Value)
-			if err != nil {
-				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
-				return
-			}
-		case "counter":
-			err := h.memStorage.SetJSONCounter(metrics.ID, metrics.Delta)
-			if err != nil {
-				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
-				return
-			}
-		default:
-			http.Error(res, "StatusBadRequest", http.StatusBadRequest)
+
+		err := setJSONorDBmetric(h.memStorage, metrics.MType, metrics.ID, metrics.Value, metrics.Delta, client)
+		if err != nil {
+			http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 			return
 		}
 
-		metricStorage, err := h.memStorage.GetJSONMetric(metrics.MType, metrics.ID)
+		metricStorage, err := getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, client)
 		if err != nil {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
@@ -244,7 +224,7 @@ func (h *handler) UpdatedJSONMetric(log *zap.Logger) http.HandlerFunc {
 	}
 }
 
-func (h *handler) GetJSONMetric(log *zap.Logger) http.HandlerFunc {
+func (h *handler) GetJSONMetric(log *zap.Logger, client *pg.PgStorage) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
 		var metrics models.Metrics
@@ -260,7 +240,7 @@ func (h *handler) GetJSONMetric(log *zap.Logger) http.HandlerFunc {
 			return
 		}
 
-		metric, err := h.memStorage.GetJSONMetric(metrics.MType, metrics.ID)
+		metric, err := getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, client)
 		if err != nil {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
@@ -281,20 +261,19 @@ func (h *handler) GetJSONMetric(log *zap.Logger) http.HandlerFunc {
 	}
 }
 
-func (h *handler) GetAllMetrics(log *zap.Logger) http.HandlerFunc {
+func (h *handler) GetAllMetrics(log *zap.Logger, client *pg.PgStorage) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		buf := bytes.NewBuffer(nil)
 		ioWriter := io.MultiWriter(res, buf)
 		res.Header().Set("Content-Type", "text/html")
 
-		//tmpl := mtemplate.Must(mtemplate.New("html-tmpl").Parse("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Title</title>\n</head>\n<body>\n<h1>Метрики</h1>\n\n<h2>Gauge</h2>\n<ul>\n    {{range $name, $val := .Gauge}}\n    <li>{{$name}} - {{$val}}</li>`\n    {{end}}\n</ul>\n\n<h2>Counter</h2>\n<ul>\n    {{range $name, $val := .Counter}}\n    <li>{{$name}} - {{$val}}</li>`\n    {{end}}\n</ul>\n\n</body>\n</html>"))
 		tmpl := mtemplate.MainTemplate()
 		tmpl.Execute(ioWriter, struct {
 			Gauge   interface{}
 			Counter interface{}
 		}{
-			Gauge:   h.memStorage.GetTypeMetric("gauge"),
-			Counter: h.memStorage.GetTypeMetric("counter"),
+			Gauge:   getMetrics(h.memStorage, "gauge", client),
+			Counter: getMetrics(h.memStorage, "counter", client),
 		})
 		tmplSize := len(buf.Bytes())
 
@@ -304,4 +283,58 @@ func (h *handler) GetAllMetrics(log *zap.Logger) http.HandlerFunc {
 			zap.String("about", "GetAllMetrics"),
 		)
 	}
+}
+
+func getJSONorDBmetrics(m keeper, MType, ID string, client *pg.PgStorage) (models.Metrics, error) {
+	metricStorage := models.Metrics{}
+	err := errors.New("")
+	if client.DB == nil {
+		metricStorage, err = m.GetJSONMetric(MType, ID)
+	} else {
+		metricStorage, err = client.GetDBMetric(MType, ID)
+	}
+	if err != nil {
+		return models.Metrics{}, err
+	}
+	return metricStorage, nil
+}
+
+func setJSONorDBmetric(m keeper, MType, ID string, value *float64, delta *int64, client *pg.PgStorage) error {
+	var err error = nil
+
+	deltaDefault := int64(0)
+	valueDefault := float64(0)
+
+	switch MType {
+	case "gauge":
+		if client.DB == nil {
+			err = m.SetJSONGauge(ID, value)
+		} else {
+			err = client.SetDBMetric(MType, ID, value, &deltaDefault)
+		}
+		if err != nil {
+			return err
+		}
+	case "counter":
+		if client.DB == nil {
+			err = m.SetJSONCounter(ID, delta)
+		} else {
+			err = client.SetDBMetric(MType, ID, &valueDefault, delta)
+		}
+		if err != nil {
+			return err
+		}
+	default:
+		return err
+	}
+	return nil
+}
+
+func getMetrics(m keeper, MType string, client *pg.PgStorage) interface{} {
+	if client.DB == nil {
+		return m.GetTypeMetric(MType)
+	} else {
+		return client.GetDBMetrics(MType)
+	}
+	return 0
 }

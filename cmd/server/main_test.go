@@ -6,6 +6,7 @@ import (
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
+	"github.com/axelx/go-yandex-metrics/internal/pg"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,7 @@ func TestGetMetric(t *testing.T) {
 	m.SetCounter("PollCount", 5)
 
 	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), ""))
+	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), pg.NewClient()))
 	defer ts.Close()
 
 	var testTable = []struct {
@@ -60,7 +61,7 @@ func TestUpdatedMetric(t *testing.T) {
 	m.SetCounter("PollCount", 5)
 
 	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), ""))
+	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), pg.NewClient()))
 	defer ts.Close()
 
 	type want struct {
@@ -111,7 +112,7 @@ func TestGetJsonMetric(t *testing.T) {
 	m.SetJSONCounter("PollCount", &c)
 
 	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), ""))
+	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), pg.NewClient()))
 	defer ts.Close()
 
 	var testTable = []struct {
@@ -151,7 +152,7 @@ func TestJsonUpdatedMetric(t *testing.T) {
 	m.SetJSONCounter("PollCount", &c)
 
 	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), ""))
+	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), pg.NewClient()))
 	defer ts.Close()
 
 	type want struct {

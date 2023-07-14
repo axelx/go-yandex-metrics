@@ -5,28 +5,28 @@ networks:
     driver: 'bridge'
 
 services:
-  server:
-    build:
-      context: ./../
-      dockerfile: ./docker/Dockerfile
-    ports:
-      - "8080:8080"
-    restart: unless-stopped
-    command: go run cmd/server/main.go
-    volumes:
-      - ../:/app
-    environment:
-      ADDRESS: '0.0.0.0:8080'
-      LOG_LEVEL: "info"
-      STORE_INTERVAL: 300
-      FILE_STORAGE_PATH: '/tmp/metrics-db.json'
-      RESTORE: true
-#      DATABASE_DSN: 'postgres://user:password@db/db-go-yandex-metrics'
-    networks:
-      - metrics_net
-    depends_on:
-      - db
-
+#  server:
+#    build:
+#      context: ./../
+#      dockerfile: ./docker/Dockerfile
+#    ports:
+#      - "8080:8080"
+#    restart: unless-stopped
+#    command: go run cmd/server/main.go
+#    volumes:
+#      - ../:/app
+#    environment:
+#      ADDRESS: '0.0.0.0:8080'
+#      LOG_LEVEL: "info"
+#      STORE_INTERVAL: 300
+#      FILE_STORAGE_PATH: '/tmp/metrics-db.json'
+#      RESTORE: true
+##      DATABASE_DSN: 'postgres://user:password@db/db-go-yandex-metrics'
+#    networks:
+#      - metrics_net
+#    depends_on:
+#      - db
+#
 #  agent:
 #    build:
 #      context: ./../
@@ -45,7 +45,6 @@ services:
 #      - db
   db:
     container_name: db
-#    image: postgres:15-alpine
     image: postgres:10.3-alpine
     restart: unless-stopped
     environment:
