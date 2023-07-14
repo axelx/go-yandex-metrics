@@ -146,6 +146,10 @@ func (c *PgStorage) GetDBMetrics(typeMetric string) interface{} {
 			}
 			res[metric.Name] = metric.Value
 		}
+		err = rows.Err()
+		if err != nil {
+			return nil
+		}
 
 		return res
 	case "counter":
@@ -160,6 +164,10 @@ func (c *PgStorage) GetDBMetrics(typeMetric string) interface{} {
 				return nil
 			}
 			res[metric.Name] = metric.Delta
+		}
+		err = rows.Err()
+		if err != nil {
+			return nil
 		}
 		return res
 	default:
