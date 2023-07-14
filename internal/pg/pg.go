@@ -101,7 +101,6 @@ func (c *PgStorage) GetDBMetric(typeMetric, nameMetric string) (models.Metrics, 
 func (c *PgStorage) SetDBMetric(typeMetric, nameMetric string, value *float64, delta *int64) error {
 
 	err := errors.New("не найдена метрика")
-	mt := models.Metrics{}
 	switch typeMetric {
 	case "gauge":
 		_, err := c.DB.ExecContext(context.Background(),
@@ -111,7 +110,6 @@ func (c *PgStorage) SetDBMetric(typeMetric, nameMetric string, value *float64, d
 			return err
 		}
 
-		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Value: value}
 		return nil
 	case "counter":
 		_, err := c.DB.ExecContext(context.Background(),
@@ -121,8 +119,6 @@ func (c *PgStorage) SetDBMetric(typeMetric, nameMetric string, value *float64, d
 			return err
 		}
 
-		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Delta: delta}
-		fmt.Println("delta:::", delta, mt)
 		return nil
 	default:
 		return err
@@ -130,7 +126,6 @@ func (c *PgStorage) SetDBMetric(typeMetric, nameMetric string, value *float64, d
 }
 
 func (c *PgStorage) GetDBMetrics(typeMetric string) interface{} {
-	fmt.Println("GetDBMetrics_____")
 	res := map[string]interface{}{}
 	var metric struct {
 		Name  string
@@ -140,6 +135,9 @@ func (c *PgStorage) GetDBMetrics(typeMetric string) interface{} {
 	switch typeMetric {
 	case "gauge":
 		rows, err := c.DB.QueryContext(context.Background(), ` SELECT name, value FROM gauge`)
+		if err != nil {
+			return nil
+		}
 
 		for rows.Next() {
 			err = rows.Scan(&metric.Name, &metric.Value)
@@ -152,6 +150,9 @@ func (c *PgStorage) GetDBMetrics(typeMetric string) interface{} {
 		return res
 	case "counter":
 		rows, err := c.DB.QueryContext(context.Background(), ` SELECT name, delta FROM counter`)
+		if err != nil {
+			return nil
+		}
 
 		for rows.Next() {
 			err = rows.Scan(&metric.Name, &metric.Delta)

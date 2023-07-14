@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/mgzip"
@@ -287,7 +286,7 @@ func (h *handler) GetAllMetrics(log *zap.Logger, client *pg.PgStorage) http.Hand
 
 func getJSONorDBmetrics(m keeper, MType, ID string, client *pg.PgStorage) (models.Metrics, error) {
 	metricStorage := models.Metrics{}
-	err := errors.New("")
+	var err error = nil
 	if client.DB == nil {
 		metricStorage, err = m.GetJSONMetric(MType, ID)
 	} else {
@@ -336,5 +335,4 @@ func getMetrics(m keeper, MType string, client *pg.PgStorage) interface{} {
 	} else {
 		return client.GetDBMetrics(MType)
 	}
-	return 0
 }
