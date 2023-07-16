@@ -158,8 +158,6 @@ func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
 		}
 	}
 	return tx.Commit()
-
-	return nil
 }
 
 func (c *PgStorage) GetDBMetrics(typeMetric string) interface{} {
