@@ -62,7 +62,7 @@ func (c *PgStorage) CreateTable() error {
 				CREATE TABLE IF NOT EXISTS counter (
 					id serial PRIMARY KEY,
 					name varchar(450) NOT NULL UNIQUE,
-					delta integer NOT NULL DEFAULT '0'
+					delta bigint NOT NULL DEFAULT '0'
 				);
 			`)
 	return err
@@ -139,8 +139,8 @@ func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
 				"INSERT INTO gauge (name, value) VALUES ($1, $2) "+
 					" ON CONFLICT (name) DO UPDATE SET value = $2", v.ID, v.Value)
 			if err != nil {
-				tx.Rollback()
 				fmt.Println(v, "gauge err", err)
+				tx.Rollback()
 
 				return err
 			}
@@ -150,8 +150,8 @@ func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
 				`INSERT INTO counter (name, delta) VALUES ($1, $2)
 						ON CONFLICT (name) DO UPDATE SET delta = counter.delta +  $2;`, v.ID, v.Delta)
 			if err != nil {
-				tx.Rollback()
 				fmt.Println(v, "counter err", err)
+				tx.Rollback()
 				return err
 			}
 		default:
