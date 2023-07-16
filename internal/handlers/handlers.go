@@ -247,6 +247,7 @@ func (h *handler) UpdatedJSONMetrics(log *zap.Logger, client *pg.PgStorage) http
 		}
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusOK)
+		res.Write([]byte("{}"))
 
 		log.Info("sending HTTP response UpdatedMetric",
 			zap.String("status", strconv.Itoa(http.StatusOK)),
