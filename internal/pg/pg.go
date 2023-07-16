@@ -124,6 +124,43 @@ func (c *PgStorage) SetDBMetric(typeMetric, nameMetric string, value *float64, d
 		return err
 	}
 }
+func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
+	ctx := context.Background()
+
+	tx, err := c.DB.Begin()
+	if err != nil {
+		return err
+	}
+	for _, v := range metrics {
+		switch v.MType {
+		case "gauge":
+			fmt.Println(v, "gauge")
+			_, err := tx.ExecContext(ctx,
+				"INSERT INTO gauge (name, value) VALUES ($1, $2) "+
+					" ON CONFLICT (name) DO UPDATE SET value = $2", v.ID, v.Value)
+			if err != nil {
+				tx.Rollback()
+				fmt.Println(v, "gauge err", err)
+
+				return err
+			}
+		case "counter":
+			fmt.Println(v, "counter")
+			_, err := tx.ExecContext(ctx,
+				`INSERT INTO counter (name, delta) VALUES ($1, $2)
+						ON CONFLICT (name) DO UPDATE SET delta = counter.delta +  $2;`, v.ID, v.Delta)
+			if err != nil {
+				tx.Rollback()
+				fmt.Println(v, "counter err", err)
+				return err
+			}
+		default:
+		}
+	}
+	return tx.Commit()
+
+	return nil
+}
 
 func (c *PgStorage) GetDBMetrics(typeMetric string) interface{} {
 	res := map[string]interface{}{}

@@ -63,13 +63,13 @@ func NewConfigAgent() ConfigAgent {
 		Client: &http.Client{
 			Transport: rt,
 		},
-		BaseURL:         "http://localhost:8080/update/",
+		BaseURL:         "http://localhost:8080/",
 		ReportFrequency: 10,
 		PollFrequency:   2,
 	}
 
 	if cf.FlagServerAddr != "" {
-		confDefault.BaseURL = "http://" + cf.FlagServerAddr + "/update/"
+		confDefault.BaseURL = "http://" + cf.FlagServerAddr + "/"
 	}
 	if cf.FlagReportFrequency != 0 {
 		confDefault.ReportFrequency = cf.FlagReportFrequency

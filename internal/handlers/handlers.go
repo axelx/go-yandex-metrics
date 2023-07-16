@@ -51,6 +51,7 @@ func (h *handler) Router(log *zap.Logger, client *pg.PgStorage) chi.Router {
 	r.Post("/update/", GzipMiddleware(h.UpdatedJSONMetric(log, client)))
 	r.Post("/value/", GzipMiddleware(h.GetJSONMetric(log, client)))
 	r.Get("/ping", h.DBConnect(client))
+	r.Post("/updates/", GzipMiddleware(h.UpdatedJSONMetrics(log, client)))
 
 	return r
 }
@@ -218,6 +219,36 @@ func (h *handler) UpdatedJSONMetric(log *zap.Logger, client *pg.PgStorage) http.
 
 		log.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
+			zap.String("status", strconv.Itoa(http.StatusOK)),
+		)
+	}
+}
+func (h *handler) UpdatedJSONMetrics(log *zap.Logger, client *pg.PgStorage) http.HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) {
+
+		var metrics []models.Metrics
+
+		dec := json.NewDecoder(req.Body)
+		if err := dec.Decode(&metrics); err != nil {
+			log.Debug("cannot decode request JSON body", zap.Error(err))
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if len(metrics) == 0 {
+			http.Error(res, "StatusNotFound", http.StatusNotFound)
+			return
+		}
+
+		err := client.SetBatchMetrics(metrics)
+		if err != nil {
+			http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
+			return
+		}
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusOK)
+
+		log.Info("sending HTTP response UpdatedMetric",
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
 	}
