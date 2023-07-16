@@ -20,3 +20,11 @@ func PrepareInt64Data(data string) (int64, error) {
 	}
 	return i, nil
 }
+
+func Int64ToPointerInt64(i int64) *int64 {
+	return &i
+}
+
+func Float64ToPointerFloat64(f float64) *float64 {
+	return &f
+}
