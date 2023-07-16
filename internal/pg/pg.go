@@ -78,7 +78,7 @@ func (c *PgStorage) GetDBMetric(typeMetric, nameMetric string) (models.Metrics, 
 		var value float64
 		err = row.Scan(&value)
 		if err != nil {
-			panic(err)
+			return mt, err
 		}
 
 		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Value: &value}
@@ -89,7 +89,8 @@ func (c *PgStorage) GetDBMetric(typeMetric, nameMetric string) (models.Metrics, 
 		var delta int64
 		err = row.Scan(&delta)
 		if err != nil {
-			panic(err)
+			fmt.Println("panic err", err)
+			return mt, err
 		}
 		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Delta: &delta}
 		return mt, nil

@@ -321,6 +321,7 @@ func getJSONorDBmetrics(m keeper, MType, ID string, client *pg.PgStorage) (model
 	if client.DB == nil {
 		metricStorage, err = m.GetJSONMetric(MType, ID)
 	} else {
+		fmt.Println(client, MType, ID)
 		metricStorage, err = client.GetDBMetric(MType, ID)
 	}
 	if err != nil {
