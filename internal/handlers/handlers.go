@@ -11,11 +11,13 @@ import (
 	"github.com/axelx/go-yandex-metrics/internal/pg"
 	"github.com/axelx/go-yandex-metrics/internal/service"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgerrcode"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type keeper interface {
@@ -240,11 +242,28 @@ func (h *handler) UpdatedJSONMetrics(log *zap.Logger, client *pg.PgStorage) http
 			return
 		}
 
-		err := client.SetBatchMetrics(metrics)
-		if err != nil {
-			http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
-			return
+		for _, interval := range client.RetryIntervals {
+			err := client.SetBatchMetrics(metrics)
+			if err == nil {
+				break
+			}
+			// Проверка, является ли ошибка ошибкой PostgreSQL
+			pgErr, ok := err.(interface{ SQLState() string })
+			if ok {
+				sqlState := pgErr.SQLState()
+				fmt.Println(":::", sqlState)
+				if pgerrcode.IsConnectionException(sqlState) {
+					fmt.Println("pgerrcode.IsConnectionException(sqlState)")
+					time.Sleep(interval)
+				}
+			}
+			if err != nil {
+				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
+				return
+			}
+
 		}
+
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusOK)
 		res.Write([]byte("{}"))

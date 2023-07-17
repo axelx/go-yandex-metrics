@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 type ConfigAgentFlag struct {
@@ -18,6 +19,7 @@ type ConfigAgent struct {
 	BaseURL         string
 	ReportFrequency int
 	PollFrequency   int
+	RetryIntervals  []time.Duration
 }
 
 // ////// middleware
@@ -66,6 +68,7 @@ func NewConfigAgent() ConfigAgent {
 		BaseURL:         "http://localhost:8080/",
 		ReportFrequency: 10,
 		PollFrequency:   2,
+		RetryIntervals:  []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
 	}
 
 	if cf.FlagServerAddr != "" {

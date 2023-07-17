@@ -7,6 +7,7 @@ import (
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	_ "github.com/jackc/pgx/stdlib"
 	"github.com/jmoiron/sqlx"
+	"time"
 )
 
 const (
@@ -16,11 +17,13 @@ const (
 type PgStorage struct {
 	DB             *sqlx.DB
 	maxConnections int
+	RetryIntervals []time.Duration
 }
 
 func NewClient() *PgStorage {
 	return &PgStorage{
 		maxConnections: defaultMaxConnections,
+		RetryIntervals: []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
 	}
 }
 
@@ -80,6 +83,7 @@ func (c *PgStorage) GetDBMetric(typeMetric, nameMetric string) (models.Metrics, 
 		var value float64
 		err = row.Scan(&value)
 		if err != nil {
+			fmt.Println("err GetDBMetricс g:", err)
 			return mt, err
 		}
 
@@ -92,7 +96,7 @@ func (c *PgStorage) GetDBMetric(typeMetric, nameMetric string) (models.Metrics, 
 		var delta int64
 		err = row.Scan(&delta)
 		if err != nil {
-			fmt.Println(" err:", err)
+			fmt.Println(" err  GetDBMetric c:", err)
 			return mt, err
 		}
 		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Delta: &delta}

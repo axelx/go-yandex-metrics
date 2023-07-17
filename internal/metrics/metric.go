@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/models"
@@ -24,18 +25,26 @@ func New() Metric {
 	}
 }
 
+var (
+	ErrDialUp = errors.New("dial up connection")
+)
+
 func (m *Metric) Report(c config.ConfigAgent) {
 	for {
 		//производим опрос/обновление метрик
 		m.poll(c)
-		fmt.Println("metrics:///", m.data)
-		metricsJSON, err := json.Marshal(m.data)
-		if err != nil {
-			fmt.Printf("Error metricsJSON: %s\n", err)
-		}
-		fmt.Println("[]metrics:///", string(metricsJSON))
 
-		sendRequestSliceMetrics(c, m.data)
+		for _, interval := range c.RetryIntervals {
+			err := sendRequestSliceMetrics(c, m.data)
+			if err == nil {
+				break
+			}
+			if errors.Is(err, ErrDialUp) {
+				fmt.Println("errors.Is(err, ErrDialUp)")
+				time.Sleep(interval)
+			}
+		}
+
 		for _, metrics := range m.data {
 			sendRequestMetric(c, metrics)
 		}
@@ -91,33 +100,45 @@ func (m *Metric) poll(c config.ConfigAgent) {
 	}
 }
 
-func sendRequestSliceMetrics(c config.ConfigAgent, metrics []models.Metrics) {
+func sendRequestSliceMetrics(c config.ConfigAgent, metrics []models.Metrics) error {
 	metricsJSON, err := json.Marshal(metrics)
 	if err != nil {
-		fmt.Printf("Error metricsJSON: %s\n", err)
+		return err
 	}
-	sendRequest("updates/", c, metricsJSON)
+	err = sendRequest("updates/", c, metricsJSON)
+	if err != nil {
+		fmt.Printf("Error sendRequest: %s\n", err)
+		return err
+	}
+	return nil
 }
-func sendRequestMetric(c config.ConfigAgent, metric models.Metrics) {
+func sendRequestMetric(c config.ConfigAgent, metric models.Metrics) error {
 	metricsJSON, err := json.Marshal(metric)
 	if err != nil {
 		fmt.Printf("Error metricsJSON: %s\n", err)
+		return err
 	}
-	sendRequest("update/", c, metricsJSON)
+	err = sendRequest("update/", c, metricsJSON)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte) {
+func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte) error {
 	buf := bytes.NewBuffer(nil)
 	zb := gzip.NewWriter(buf)
 	_, err := zb.Write([]byte(metricsJSON))
 	if err != nil {
-		fmt.Println("Error", err)
+		fmt.Println("Error zb.Write([]byte(metricsJSON)): ", err)
+		return err
 	}
 	zb.Close()
 
 	req, err := http.NewRequest("POST", c.BaseURL+url, buf)
 	if err != nil {
-		fmt.Println("Error reporting metrics:", err)
+		fmt.Println("Error create request:", err)
+		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
@@ -125,10 +146,11 @@ func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte) {
 
 	if err != nil {
 		fmt.Println("Error reporting metrics:", err, string(metricsJSON))
+		return ErrDialUp
 	} else {
-		//body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 
 		fmt.Printf("Metrics sent successfully! Send body: %s, Response body: \n", string(metricsJSON))
 	}
+	return nil
 }
