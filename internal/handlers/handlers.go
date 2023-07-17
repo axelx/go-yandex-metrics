@@ -257,10 +257,8 @@ func (h *handler) UpdatedJSONMetrics(log *zap.Logger, client *pg.PgStorage) http
 					time.Sleep(interval)
 				}
 			}
-			if err != nil {
-				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
-				return
-			}
+			http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
+			return
 
 		}
 
