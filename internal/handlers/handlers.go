@@ -258,8 +258,6 @@ func (h *handler) UpdatedJSONMetrics(log *zap.Logger, client *pg.PgStorage) http
 				}
 			}
 			http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
-			return
-
 		}
 
 		res.Header().Set("Content-Type", "application/json")
