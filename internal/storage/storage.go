@@ -7,6 +7,7 @@ import (
 	"github.com/axelx/go-yandex-metrics/internal/mos"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 type MemStorage struct {
@@ -177,5 +178,16 @@ func (m *MemStorage) RestoreFromFile() {
 		} else if metric.MType == "counter" {
 			m.counter[metric.ID] = *metric.Delta
 		}
+	}
+}
+
+func (m *MemStorage) UpdateFile() {
+	if m.UpdateInterval == 0 {
+		return
+	}
+	for {
+		m.SaveMetricToFile()
+		fmt.Println("updateMemstorage from file ")
+		time.Sleep(time.Duration(m.UpdateInterval) * time.Second)
 	}
 }

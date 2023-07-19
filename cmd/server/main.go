@@ -9,7 +9,6 @@ import (
 	"github.com/axelx/go-yandex-metrics/internal/storage"
 	"go.uber.org/zap"
 	"net/http"
-	"time"
 )
 
 func main() {
@@ -37,21 +36,10 @@ func main() {
 		metricStorage.RestoreFromFile()
 	}
 
-	go updateMemstorage(metricStorage)
+	go metricStorage.UpdateFile()
 
 	hd := handlers.New(&metricStorage, "info", newClient)
 	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router()); err != nil {
 		panic(err)
-	}
-}
-
-func updateMemstorage(metricStorage storage.MemStorage) {
-	if metricStorage.UpdateInterval == 0 {
-		return
-	}
-	for {
-		metricStorage.SaveMetricToFile()
-		fmt.Println("updateMemstorage from file ")
-		time.Sleep(time.Duration(metricStorage.UpdateInterval) * time.Second)
 	}
 }
