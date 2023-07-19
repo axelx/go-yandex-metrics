@@ -39,8 +39,8 @@ func main() {
 
 	go updateMemstorage(metricStorage)
 
-	hd := handlers.New(&metricStorage)
-	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router(lg, newClient)); err != nil {
+	hd := handlers.New(&metricStorage, "info", newClient)
+	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router()); err != nil {
 		panic(err)
 	}
 }

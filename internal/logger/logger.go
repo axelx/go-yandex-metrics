@@ -38,6 +38,7 @@ func RequestLogger(log *zap.Logger) func(http.Handler) http.Handler {
 				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
 				zap.String("duration", duration.String()),
+				zap.String("РУДДЩ", "0000000"),
 			)
 		})
 	}

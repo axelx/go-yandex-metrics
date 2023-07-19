@@ -34,44 +34,53 @@ type keeper interface {
 
 type handler struct {
 	memStorage keeper
+	Logger     *zap.Logger
+	ClientDB   *pg.PgStorage
 }
 
-func New(k keeper) handler {
+func New(k keeper, logLevel string, newClient *pg.PgStorage) handler {
 	return handler{
 		memStorage: k,
+		Logger:     logger.Initialize(logLevel),
+		ClientDB:   newClient,
 	}
 }
 
-func (h *handler) Router(log *zap.Logger, client *pg.PgStorage) chi.Router {
+func (h *handler) Router() chi.Router {
 
 	r := chi.NewRouter()
-	r.Use(logger.RequestLogger(log))
+	r.Use(logger.RequestLogger(h.Logger))
 
-	r.Post("/update/{typeM}/{nameM}/{valueM}", h.UpdatedMetric(log))
-	r.Get("/value/{typeM}/{nameM}", h.GetMetric(log))
-	r.Get("/", mgzip.GzipHandle(h.GetAllMetrics(log, client)))
-	r.Post("/update/", GzipMiddleware(h.UpdatedJSONMetric(log, client)))
-	r.Post("/value/", GzipMiddleware(h.GetJSONMetric(log, client)))
-	r.Get("/ping", h.DBConnect(client))
-	r.Post("/updates/", GzipMiddleware(h.UpdatedJSONMetrics(log, client)))
+	r.Post("/update/{typeM}/{nameM}/{valueM}", h.UpdatedMetric())
+	r.Get("/value/{typeM}/{nameM}", h.GetMetric())
+	r.Get("/", mgzip.GzipHandle(h.GetAllMetrics()))
+	r.Post("/update/", GzipMiddleware(h.UpdatedJSONMetric()))
+	r.Post("/value/", GzipMiddleware(h.GetJSONMetric()))
+	r.Get("/ping", h.DBConnect())
+	r.Post("/updates/", GzipMiddleware(h.UpdatedJSONMetrics()))
 
 	return r
 }
 
-func (h *handler) DBConnect(client *pg.PgStorage) http.HandlerFunc {
+func (h *handler) DBConnect() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		if client.DB != nil {
+		if h.ClientDB.DB != nil {
 			res.WriteHeader(http.StatusOK)
 			_, err := res.Write([]byte(""))
 			if err != nil {
-				fmt.Println("в DbConnect что-то пошло не так 1", err)
+				h.Logger.Error("Error res.Write(metricsJSON)",
+					zap.String("about func", "DbConnect"),
+					zap.String("about ERR", err.Error()),
+				)
 			}
-
 		} else {
 			res.WriteHeader(http.StatusInternalServerError)
 			_, err := res.Write([]byte(""))
 			if err != nil {
-				fmt.Println("в DbConnect что-то пошло не так 2", err)
+				h.Logger.Error("Error res.Write(metricsJSON)",
+					zap.String("about func", "DbConnect"),
+					zap.String("about ERR", err.Error()),
+				)
 			}
 		}
 	}
@@ -100,7 +109,7 @@ func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (h *handler) UpdatedMetric(log *zap.Logger) http.HandlerFunc {
+func (h *handler) UpdatedMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		typeM := chi.URLParam(req, "typeM")
 		nameM := chi.URLParam(req, "nameM")
@@ -141,19 +150,22 @@ func (h *handler) UpdatedMetric(log *zap.Logger) http.HandlerFunc {
 
 		size, err := res.Write([]byte(valueM))
 		if err != nil {
-			fmt.Println("в UpdatedMetric что-то пошло не так", err)
+			h.Logger.Error("Error res.Write(metricsJSON)",
+				zap.String("about func", "UpdatedMetric"),
+				zap.String("about ERR", err.Error()),
+			)
 		}
 
 		res.WriteHeader(http.StatusOK)
 
-		log.Info("sending HTTP response UpdatedMetric",
+		h.Logger.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
 	}
 }
 
-func (h *handler) GetMetric(log *zap.Logger) http.HandlerFunc {
+func (h *handler) GetMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		typeM := chi.URLParam(req, "typeM")
 		nameM := chi.URLParam(req, "nameM")
@@ -169,25 +181,31 @@ func (h *handler) GetMetric(log *zap.Logger) http.HandlerFunc {
 			return
 		}
 
-		size, _ := res.Write([]byte(metric))
+		size, err := res.Write([]byte(metric))
+		if err != nil {
+			h.Logger.Error("Error res.Write(metricsJSON)",
+				zap.String("about func", "GetMetric"),
+				zap.String("about ERR", err.Error()),
+			)
+		}
 
 		res.WriteHeader(http.StatusOK)
 
-		log.Info("sending HTTP response UpdatedMetric",
+		h.Logger.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
 	}
 }
 
-func (h *handler) UpdatedJSONMetric(log *zap.Logger, client *pg.PgStorage) http.HandlerFunc {
+func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
-		log.Debug("decoding request")
+		h.Logger.Debug("decoding request")
 		var metrics models.Metrics
 		dec := json.NewDecoder(req.Body)
 		if err := dec.Decode(&metrics); err != nil {
-			log.Debug("cannot decode request JSON body", zap.Error(err))
+			h.Logger.Debug("cannot decode request JSON body", zap.Error(err))
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -199,13 +217,13 @@ func (h *handler) UpdatedJSONMetric(log *zap.Logger, client *pg.PgStorage) http.
 			return
 		}
 
-		err := setJSONorDBmetric(h.memStorage, metrics.MType, metrics.ID, metrics.Value, metrics.Delta, client)
+		err := setJSONorDBmetric(h.memStorage, metrics.MType, metrics.ID, metrics.Value, metrics.Delta, h.ClientDB)
 		if err != nil {
 			http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 			return
 		}
 
-		metricStorage, err := getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, client)
+		metricStorage, err := getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, h.ClientDB)
 		if err != nil {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
@@ -213,26 +231,35 @@ func (h *handler) UpdatedJSONMetric(log *zap.Logger, client *pg.PgStorage) http.
 
 		metricsJSON, err := json.Marshal(metricStorage)
 		if err != nil {
-			fmt.Println("Error json marshal metrics:", err)
+			h.Logger.Error("Error json.Marshal(metricStorage)",
+				zap.String("about func", "UpdatedJSONMetric"),
+				zap.String("about ERR", err.Error()),
+			)
 		}
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusOK)
-		size, _ := res.Write(metricsJSON)
+		size, err := res.Write(metricsJSON)
+		if err != nil {
+			h.Logger.Error("Error res.Write(metricsJSON)",
+				zap.String("about func", "UpdatedJSONMetric"),
+				zap.String("about ERR", err.Error()),
+			)
+		}
 
-		log.Info("sending HTTP response UpdatedMetric",
+		h.Logger.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
 	}
 }
-func (h *handler) UpdatedJSONMetrics(log *zap.Logger, client *pg.PgStorage) http.HandlerFunc {
+func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
 		var metrics []models.Metrics
 
 		dec := json.NewDecoder(req.Body)
 		if err := dec.Decode(&metrics); err != nil {
-			log.Debug("cannot decode request JSON body", zap.Error(err))
+			h.Logger.Debug("cannot decode request JSON body", zap.Error(err))
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -242,8 +269,8 @@ func (h *handler) UpdatedJSONMetrics(log *zap.Logger, client *pg.PgStorage) http
 			return
 		}
 
-		for _, interval := range client.RetryIntervals {
-			err := client.SetBatchMetrics(metrics)
+		for _, interval := range h.ClientDB.RetryIntervals {
+			err := h.ClientDB.SetBatchMetrics(metrics)
 			if err == nil {
 				break
 			}
@@ -264,19 +291,19 @@ func (h *handler) UpdatedJSONMetrics(log *zap.Logger, client *pg.PgStorage) http
 		res.WriteHeader(http.StatusOK)
 		res.Write([]byte("{}"))
 
-		log.Info("sending HTTP response UpdatedMetric",
+		h.Logger.Info("sending HTTP response UpdatedMetric",
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
 	}
 }
 
-func (h *handler) GetJSONMetric(log *zap.Logger, client *pg.PgStorage) http.HandlerFunc {
+func (h *handler) GetJSONMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
 		var metrics models.Metrics
 		dec := json.NewDecoder(req.Body)
 		if err := dec.Decode(&metrics); err != nil {
-			log.Debug("cannot decode request JSON body", zap.Error(err))
+			h.Logger.Debug("cannot decode request JSON body", zap.Error(err))
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -286,7 +313,7 @@ func (h *handler) GetJSONMetric(log *zap.Logger, client *pg.PgStorage) http.Hand
 			return
 		}
 
-		metric, err := getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, client)
+		metric, err := getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, h.ClientDB)
 		if err != nil {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
@@ -300,14 +327,14 @@ func (h *handler) GetJSONMetric(log *zap.Logger, client *pg.PgStorage) http.Hand
 		res.WriteHeader(http.StatusOK)
 		size, _ := res.Write(metricsJSON)
 
-		log.Info("sending HTTP response UpdatedMetric",
+		h.Logger.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
 	}
 }
 
-func (h *handler) GetAllMetrics(log *zap.Logger, client *pg.PgStorage) http.HandlerFunc {
+func (h *handler) GetAllMetrics() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		buf := bytes.NewBuffer(nil)
 		ioWriter := io.MultiWriter(res, buf)
@@ -318,12 +345,12 @@ func (h *handler) GetAllMetrics(log *zap.Logger, client *pg.PgStorage) http.Hand
 			Gauge   interface{}
 			Counter interface{}
 		}{
-			Gauge:   getMetrics(h.memStorage, "gauge", client),
-			Counter: getMetrics(h.memStorage, "counter", client),
+			Gauge:   getMetrics(h.memStorage, "gauge", h.ClientDB),
+			Counter: getMetrics(h.memStorage, "counter", h.ClientDB),
 		})
 		tmplSize := len(buf.Bytes())
 
-		log.Info("sending HTTP response UpdatedMetric",
+		h.Logger.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(tmplSize)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 			zap.String("about", "GetAllMetrics"),

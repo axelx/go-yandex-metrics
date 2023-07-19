@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
-	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/pg"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
@@ -35,8 +34,8 @@ func TestGetMetric(t *testing.T) {
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
-	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), pg.NewClient()))
+	hd := handlers.New(&m, "info", pg.NewClient())
+	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
 	var testTable = []struct {
@@ -60,8 +59,8 @@ func TestUpdatedMetric(t *testing.T) {
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
-	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), pg.NewClient()))
+	hd := handlers.New(&m, "info", pg.NewClient())
+	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
 	type want struct {
@@ -111,8 +110,8 @@ func TestGetJsonMetric(t *testing.T) {
 	m.SetJSONGauge("HeapAlloc", &g)
 	m.SetJSONCounter("PollCount", &c)
 
-	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), pg.NewClient()))
+	hd := handlers.New(&m, "info", pg.NewClient())
+	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
 	var testTable = []struct {
@@ -151,8 +150,8 @@ func TestJsonUpdatedMetric(t *testing.T) {
 	m.SetJSONGauge("HeapAlloc", &g)
 	m.SetJSONCounter("PollCount", &c)
 
-	hd := handlers.New(&m)
-	ts := httptest.NewServer(hd.Router(logger.Initialize("info"), pg.NewClient()))
+	hd := handlers.New(&m, "info", pg.NewClient())
+	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
 	type want struct {
