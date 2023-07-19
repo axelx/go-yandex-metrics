@@ -1,6 +1,10 @@
 package mtemplate
 
-import "html/template"
+import (
+	"fmt"
+	"html/template"
+	"path/filepath"
+)
 
 func MainTemplate() *template.Template {
 	//tmpl := template.Must(template.ParseFiles("./internal/mtemplate/layout.html"))
