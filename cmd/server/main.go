@@ -6,6 +6,7 @@ import (
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/pg"
+	"github.com/axelx/go-yandex-metrics/internal/pg/db"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
 	"go.uber.org/zap"
 	"net/http"
@@ -18,7 +19,8 @@ func main() {
 	lg := logger.Initialize("info")
 	lg.Info("Running server", zap.String("config", conf.String()))
 
-	newClient := pg.NewClient()
+	newClient := db.NewClient()
+	NewDBStorage := pg.NewDBStorage(newClient)
 
 	if err := newClient.Open(conf.FlagDatabaseDSN); err != nil {
 		fmt.Println("err not connect to db", err)
@@ -38,7 +40,7 @@ func main() {
 
 	go metricStorage.UpdateFile()
 
-	hd := handlers.New(&metricStorage, "info", newClient)
+	hd := handlers.New(&metricStorage, "info", newClient, NewDBStorage)
 	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router()); err != nil {
 		panic(err)
 	}

@@ -5,70 +5,22 @@ import (
 	"errors"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/models"
+	"github.com/axelx/go-yandex-metrics/internal/pg/db"
 	_ "github.com/jackc/pgx/stdlib"
-	"github.com/jmoiron/sqlx"
 	"time"
 )
 
-const (
-	defaultMaxConnections = 10
-)
-
 type PgStorage struct {
-	DB             *sqlx.DB
-	maxConnections int
+	Client *db.DB
+	//maxConnections int
 	RetryIntervals []time.Duration
 }
 
-func NewClient() *PgStorage {
+func NewDBStorage(clientDB *db.DB) *PgStorage {
 	return &PgStorage{
-		maxConnections: defaultMaxConnections,
+		Client:         clientDB,
 		RetryIntervals: []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
 	}
-}
-
-func (c *PgStorage) Open(source string) error {
-	var err error
-
-	fmt.Println("connecting to db")
-	c.DB, err = sqlx.Connect("pgx", source)
-	if err != nil {
-		return err
-	}
-
-	err = c.DB.Ping()
-	if err != nil {
-		fmt.Println("sql ping failed")
-		return err
-	}
-	fmt.Println("connected to db")
-	c.DB.SetMaxOpenConns(c.maxConnections)
-	c.DB.SetMaxIdleConns(c.maxConnections)
-
-	return nil
-}
-
-// Close closes PostgreSQL connection.
-func (c *PgStorage) Close() error {
-	fmt.Println("connection to db closed")
-	return c.DB.Close()
-}
-
-// Close closes PostgreSQL connection.
-func (c *PgStorage) CreateTable() error {
-	_, err := c.DB.ExecContext(context.Background(),
-		` CREATE TABLE IF NOT EXISTS gauge (
-					 id serial PRIMARY KEY,
-					 name varchar(450) NOT NULL UNIQUE,
-					 value double precision NOT NULL DEFAULT '0.00'
-				);
-				CREATE TABLE IF NOT EXISTS counter (
-					id serial PRIMARY KEY,
-					name varchar(450) NOT NULL UNIQUE,
-					delta bigint NOT NULL DEFAULT '0'
-				);
-			`)
-	return err
 }
 
 func (c *PgStorage) GetDBMetric(typeMetric, nameMetric string) (models.Metrics, error) {
@@ -77,7 +29,7 @@ func (c *PgStorage) GetDBMetric(typeMetric, nameMetric string) (models.Metrics, 
 	mt := models.Metrics{}
 	switch typeMetric {
 	case "gauge":
-		row := c.DB.QueryRowContext(context.Background(), ` SELECT value FROM gauge WHERE name = $1`, nameMetric)
+		row := c.Client.DB.QueryRowContext(context.Background(), ` SELECT value FROM gauge WHERE name = $1`, nameMetric)
 		fmt.Println("GetDBMetric: gauge:", nameMetric)
 
 		var value float64
@@ -90,7 +42,7 @@ func (c *PgStorage) GetDBMetric(typeMetric, nameMetric string) (models.Metrics, 
 		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Value: &value}
 		return mt, nil
 	case "counter":
-		row := c.DB.QueryRowContext(context.Background(), ` SELECT delta FROM counter WHERE name = $1`, nameMetric)
+		row := c.Client.DB.QueryRowContext(context.Background(), ` SELECT delta FROM counter WHERE name = $1`, nameMetric)
 		fmt.Println("GetDBMetric: counter:", nameMetric)
 
 		var delta int64
@@ -111,7 +63,7 @@ func (c *PgStorage) SetDBMetric(typeMetric, nameMetric string, value *float64, d
 	err := errors.New("не найдена метрика")
 	switch typeMetric {
 	case "gauge":
-		_, err := c.DB.ExecContext(context.Background(),
+		_, err := c.Client.DB.ExecContext(context.Background(),
 			`INSERT INTO gauge (name, value) VALUES ($1, $2)
 					ON CONFLICT (name) DO UPDATE SET value = $2;`, nameMetric, value)
 		if err != nil {
@@ -120,7 +72,7 @@ func (c *PgStorage) SetDBMetric(typeMetric, nameMetric string, value *float64, d
 
 		return nil
 	case "counter":
-		_, err := c.DB.ExecContext(context.Background(),
+		_, err := c.Client.DB.ExecContext(context.Background(),
 			`INSERT INTO counter (name, delta) VALUES ($1, $2)
 					ON CONFLICT (name) DO UPDATE SET delta = counter.delta +  $2;`, nameMetric, delta)
 		if err != nil {
@@ -135,7 +87,7 @@ func (c *PgStorage) SetDBMetric(typeMetric, nameMetric string, value *float64, d
 func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
 	ctx := context.Background()
 
-	tx, err := c.DB.Begin()
+	tx, err := c.Client.DB.Begin()
 	if err != nil {
 		return err
 	}
@@ -177,7 +129,7 @@ func (c *PgStorage) GetDBMetrics(typeMetric string) interface{} {
 	}
 	switch typeMetric {
 	case "gauge":
-		rows, err := c.DB.QueryContext(context.Background(), ` SELECT name, value FROM gauge`)
+		rows, err := c.Client.DB.QueryContext(context.Background(), ` SELECT name, value FROM gauge`)
 		if err != nil {
 			return nil
 		}
@@ -196,7 +148,7 @@ func (c *PgStorage) GetDBMetrics(typeMetric string) interface{} {
 
 		return res
 	case "counter":
-		rows, err := c.DB.QueryContext(context.Background(), ` SELECT name, delta FROM counter`)
+		rows, err := c.Client.DB.QueryContext(context.Background(), ` SELECT name, delta FROM counter`)
 		if err != nil {
 			return nil
 		}
