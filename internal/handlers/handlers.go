@@ -35,7 +35,7 @@ type handler struct {
 	memStorage keeper
 	Logger     *zap.Logger
 	ClientDB   *db.DB
-	DbPostgres *pg.PgStorage
+	DBPostgres *pg.PgStorage
 }
 
 func New(k keeper, logLevel string, newClient *db.DB, NewDBStorage *pg.PgStorage) handler {
@@ -43,7 +43,7 @@ func New(k keeper, logLevel string, newClient *db.DB, NewDBStorage *pg.PgStorage
 		memStorage: k,
 		Logger:     logger.Initialize(logLevel),
 		ClientDB:   newClient,
-		DbPostgres: NewDBStorage,
+		DBPostgres: NewDBStorage,
 	}
 }
 
@@ -218,13 +218,13 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 			return
 		}
 
-		err := setJSONorDBmetric(h.memStorage, metrics.MType, metrics.ID, metrics.Value, metrics.Delta, h.ClientDB, h.DbPostgres)
+		err := setJSONorDBmetric(h.memStorage, metrics.MType, metrics.ID, metrics.Value, metrics.Delta, h.ClientDB, h.DBPostgres)
 		if err != nil {
 			http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 			return
 		}
 
-		metricStorage, err := getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, h.ClientDB, h.DbPostgres)
+		metricStorage, err := getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, h.ClientDB, h.DBPostgres)
 		if err != nil {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
@@ -270,7 +270,7 @@ func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 			return
 		}
 
-		err := h.DbPostgres.SetBatchMetrics(metrics)
+		err := h.DBPostgres.SetBatchMetrics(metrics)
 		if err != nil {
 			http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 			return
@@ -302,7 +302,7 @@ func (h *handler) GetJSONMetric() http.HandlerFunc {
 			return
 		}
 
-		metric, err := getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, h.ClientDB, h.DbPostgres)
+		metric, err := getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, h.ClientDB, h.DBPostgres)
 		if err != nil {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
@@ -334,8 +334,8 @@ func (h *handler) GetAllMetrics() http.HandlerFunc {
 			Gauge   interface{}
 			Counter interface{}
 		}{
-			Gauge:   getMetrics(h.memStorage, "gauge", h.ClientDB, h.DbPostgres),
-			Counter: getMetrics(h.memStorage, "counter", h.ClientDB, h.DbPostgres),
+			Gauge:   getMetrics(h.memStorage, "gauge", h.ClientDB, h.DBPostgres),
+			Counter: getMetrics(h.memStorage, "counter", h.ClientDB, h.DBPostgres),
 		})
 		tmplSize := len(buf.Bytes())
 
@@ -347,14 +347,14 @@ func (h *handler) GetAllMetrics() http.HandlerFunc {
 	}
 }
 
-func getJSONorDBmetrics(m keeper, MType, ID string, client *db.DB, DbPostgres *pg.PgStorage) (models.Metrics, error) {
+func getJSONorDBmetrics(m keeper, MType, ID string, client *db.DB, DBPostgres *pg.PgStorage) (models.Metrics, error) {
 	metricStorage := models.Metrics{}
 	var err error = nil
 	if client.DB == nil {
 		metricStorage, err = m.GetJSONMetric(MType, ID)
 	} else {
 		fmt.Println(client, MType, ID)
-		metricStorage, err = DbPostgres.GetDBMetric(MType, ID)
+		metricStorage, err = DBPostgres.GetDBMetric(MType, ID)
 	}
 	if err != nil {
 		return models.Metrics{}, err
@@ -362,7 +362,7 @@ func getJSONorDBmetrics(m keeper, MType, ID string, client *db.DB, DbPostgres *p
 	return metricStorage, nil
 }
 
-func setJSONorDBmetric(m keeper, MType, ID string, value *float64, delta *int64, client *db.DB, DbPostgres *pg.PgStorage) error {
+func setJSONorDBmetric(m keeper, MType, ID string, value *float64, delta *int64, client *db.DB, DBPostgres *pg.PgStorage) error {
 	var err error = nil
 
 	deltaDefault := int64(0)
@@ -373,7 +373,7 @@ func setJSONorDBmetric(m keeper, MType, ID string, value *float64, delta *int64,
 		if client.DB == nil {
 			err = m.SetJSONGauge(ID, value)
 		} else {
-			err = DbPostgres.SetDBMetric(MType, ID, value, &deltaDefault)
+			err = DBPostgres.SetDBMetric(MType, ID, value, &deltaDefault)
 		}
 		if err != nil {
 			return err
@@ -382,7 +382,7 @@ func setJSONorDBmetric(m keeper, MType, ID string, value *float64, delta *int64,
 		if client.DB == nil {
 			err = m.SetJSONCounter(ID, delta)
 		} else {
-			err = DbPostgres.SetDBMetric(MType, ID, &valueDefault, delta)
+			err = DBPostgres.SetDBMetric(MType, ID, &valueDefault, delta)
 		}
 		if err != nil {
 			return err
@@ -393,10 +393,10 @@ func setJSONorDBmetric(m keeper, MType, ID string, value *float64, delta *int64,
 	return nil
 }
 
-func getMetrics(m keeper, MType string, client *db.DB, DbPostgres *pg.PgStorage) interface{} {
+func getMetrics(m keeper, MType string, client *db.DB, DBPostgres *pg.PgStorage) interface{} {
 	if client.DB == nil {
 		return m.GetTypeMetric(MType)
 	} else {
-		return DbPostgres.GetDBMetrics(MType)
+		return DBPostgres.GetDBMetrics(MType)
 	}
 }
