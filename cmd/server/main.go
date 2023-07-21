@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
@@ -23,7 +22,10 @@ func main() {
 	NewDBStorage := pg.NewDBStorage(newClient)
 
 	if err := newClient.Open(conf.FlagDatabaseDSN); err != nil {
-		fmt.Println("err not connect to db", err)
+		lg.Error("Error not connect to db",
+			zap.String("about func", "main: newClient.Open"),
+			zap.String("about ERR", err.Error()),
+		)
 	}
 	// создаем таблицы при старте сервера
 	if newClient.DB != nil {
