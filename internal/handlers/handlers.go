@@ -38,10 +38,10 @@ type handler struct {
 	DBPostgres *pg.PgStorage
 }
 
-func New(k keeper, logLevel string, newClient *db.DB, NewDBStorage *pg.PgStorage) handler {
+func New(k keeper, log *zap.Logger, newClient *db.DB, NewDBStorage *pg.PgStorage) handler {
 	return handler{
 		memStorage: k,
-		Logger:     logger.Initialize(logLevel),
+		Logger:     log,
 		ClientDB:   newClient,
 		DBPostgres: NewDBStorage,
 	}

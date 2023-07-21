@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
+	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/pg"
 	"github.com/axelx/go-yandex-metrics/internal/pg/db"
@@ -36,7 +37,7 @@ func TestGetMetric(t *testing.T) {
 	m.SetCounter("PollCount", 5)
 
 	newClient := db.NewClient()
-	hd := handlers.New(&m, "info", newClient, pg.NewDBStorage(newClient))
+	hd := handlers.New(&m, logger.Initialize("info"), newClient, pg.NewDBStorage(newClient))
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -62,7 +63,7 @@ func TestUpdatedMetric(t *testing.T) {
 	m.SetCounter("PollCount", 5)
 
 	newClient := db.NewClient()
-	hd := handlers.New(&m, "info", newClient, pg.NewDBStorage(newClient))
+	hd := handlers.New(&m, logger.Initialize("info"), newClient, pg.NewDBStorage(newClient))
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -114,7 +115,7 @@ func TestGetJsonMetric(t *testing.T) {
 	m.SetJSONCounter("PollCount", &c)
 
 	newClient := db.NewClient()
-	hd := handlers.New(&m, "info", newClient, pg.NewDBStorage(newClient))
+	hd := handlers.New(&m, logger.Initialize("info"), newClient, pg.NewDBStorage(newClient))
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -155,7 +156,7 @@ func TestJsonUpdatedMetric(t *testing.T) {
 	m.SetJSONCounter("PollCount", &c)
 
 	newClient := db.NewClient()
-	hd := handlers.New(&m, "info", newClient, pg.NewDBStorage(newClient))
+	hd := handlers.New(&m, logger.Initialize("info"), newClient, pg.NewDBStorage(newClient))
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
