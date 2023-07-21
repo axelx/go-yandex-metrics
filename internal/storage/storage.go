@@ -38,16 +38,16 @@ func (m *MemStorage) SetCounter(nameMetric string, data int64) error {
 	return nil
 }
 
-func (m *MemStorage) GetMetric(typeMetric, nameMetric string) (string, error) {
+func (m *MemStorage) GetMetric(typeMetric models.MetricType, nameMetric string) (string, error) {
 	err := errors.New("не найдена метрика")
 	switch typeMetric {
-	case "gauge":
+	case models.MetricGauge:
 		v, t := m.gauge[nameMetric]
 		if !t {
 			return "", err
 		}
 		return fmt.Sprint(v), nil
-	case "counter":
+	case models.MetricCounter:
 		v, t := m.counter[nameMetric]
 		if !t {
 			return "", err
@@ -75,7 +75,7 @@ func (m *MemStorage) SetJSONCounter(nameMetric string, data *int64) error {
 	return nil
 }
 
-func (m *MemStorage) GetJSONMetric(typeMetric, nameMetric string) (models.Metrics, error) {
+func (m *MemStorage) GetJSONMetric(typeMetric models.MetricType, nameMetric string) (models.Metrics, error) {
 	err := errors.New("не найдена метрика")
 	mt := models.Metrics{}
 	switch typeMetric {
@@ -98,11 +98,11 @@ func (m *MemStorage) GetJSONMetric(typeMetric, nameMetric string) (models.Metric
 	}
 }
 
-func (m *MemStorage) GetTypeMetric(t string) interface{} {
+func (m *MemStorage) GetTypeMetric(t models.MetricType) interface{} {
 	switch t {
-	case "gauge":
+	case models.MetricGauge:
 		return reflect.ValueOf(m).Interface().(*MemStorage).gauge
-	case "counter":
+	case models.MetricCounter:
 		return reflect.ValueOf(m).Interface().(*MemStorage).counter
 	}
 
@@ -173,9 +173,9 @@ func (m *MemStorage) RestoreFromFile() {
 		} else {
 			fmt.Println("load:", metric.MType, metric.ID, *metric.Delta)
 		}
-		if metric.MType == "gauge" {
+		if metric.MType == models.MetricGauge {
 			m.gauge[metric.ID] = *metric.Value
-		} else if metric.MType == "counter" {
+		} else if metric.MType == models.MetricCounter {
 			m.counter[metric.ID] = *metric.Delta
 		}
 	}

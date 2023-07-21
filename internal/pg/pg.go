@@ -23,12 +23,12 @@ func NewDBStorage(clientDB *db.DB) *PgStorage {
 	}
 }
 
-func (c *PgStorage) GetDBMetric(typeMetric, nameMetric string) (models.Metrics, error) {
+func (c *PgStorage) GetDBMetric(typeMetric models.MetricType, nameMetric string) (models.Metrics, error) {
 	fmt.Println("GetDBMetric:")
 	err := errors.New("не найдена метрика")
 	mt := models.Metrics{}
 	switch typeMetric {
-	case "gauge":
+	case models.MetricGauge:
 		row := c.Client.DB.QueryRowContext(context.Background(), ` SELECT value FROM gauge WHERE name = $1`, nameMetric)
 		fmt.Println("GetDBMetric: gauge:", nameMetric)
 
@@ -41,7 +41,7 @@ func (c *PgStorage) GetDBMetric(typeMetric, nameMetric string) (models.Metrics, 
 
 		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Value: &value}
 		return mt, nil
-	case "counter":
+	case models.MetricCounter:
 		row := c.Client.DB.QueryRowContext(context.Background(), ` SELECT delta FROM counter WHERE name = $1`, nameMetric)
 		fmt.Println("GetDBMetric: counter:", nameMetric)
 
@@ -58,11 +58,11 @@ func (c *PgStorage) GetDBMetric(typeMetric, nameMetric string) (models.Metrics, 
 	}
 }
 
-func (c *PgStorage) SetDBMetric(typeMetric, nameMetric string, value *float64, delta *int64) error {
+func (c *PgStorage) SetDBMetric(typeMetric models.MetricType, nameMetric string, value *float64, delta *int64) error {
 
 	err := errors.New("не найдена метрика")
 	switch typeMetric {
-	case "gauge":
+	case models.MetricGauge:
 		_, err := c.Client.DB.ExecContext(context.Background(),
 			`INSERT INTO gauge (name, value) VALUES ($1, $2)
 					ON CONFLICT (name) DO UPDATE SET value = $2;`, nameMetric, value)
@@ -71,7 +71,7 @@ func (c *PgStorage) SetDBMetric(typeMetric, nameMetric string, value *float64, d
 		}
 
 		return nil
-	case "counter":
+	case models.MetricCounter:
 		_, err := c.Client.DB.ExecContext(context.Background(),
 			`INSERT INTO counter (name, delta) VALUES ($1, $2)
 					ON CONFLICT (name) DO UPDATE SET delta = counter.delta +  $2;`, nameMetric, delta)
@@ -93,7 +93,7 @@ func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
 	}
 	for _, v := range metrics {
 		switch v.MType {
-		case "gauge":
+		case models.MetricGauge:
 			fmt.Println(v, *v.Value, "gauge")
 			_, err := tx.ExecContext(ctx,
 				"INSERT INTO gauge (name, value) VALUES ($1, $2) "+
@@ -104,7 +104,7 @@ func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
 
 				return err
 			}
-		case "counter":
+		case models.MetricCounter:
 			fmt.Println(v, *v.Delta, "counter")
 			_, err := tx.ExecContext(ctx,
 				`INSERT INTO counter (name, delta) VALUES ($1, $2)
@@ -120,7 +120,7 @@ func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
 	return tx.Commit()
 }
 
-func (c *PgStorage) GetDBMetrics(typeMetric string) interface{} {
+func (c *PgStorage) GetDBMetrics(typeMetric models.MetricType) interface{} {
 	res := map[string]interface{}{}
 	var metric struct {
 		Name  string
@@ -128,7 +128,7 @@ func (c *PgStorage) GetDBMetrics(typeMetric string) interface{} {
 		Delta int64
 	}
 	switch typeMetric {
-	case "gauge":
+	case models.MetricGauge:
 		rows, err := c.Client.DB.QueryContext(context.Background(), ` SELECT name, value FROM gauge`)
 		if err != nil {
 			return nil
@@ -147,7 +147,7 @@ func (c *PgStorage) GetDBMetrics(typeMetric string) interface{} {
 		}
 
 		return res
-	case "counter":
+	case models.MetricCounter:
 		rows, err := c.Client.DB.QueryContext(context.Background(), ` SELECT name, delta FROM counter`)
 		if err != nil {
 			return nil

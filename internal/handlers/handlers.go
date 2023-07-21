@@ -22,13 +22,13 @@ import (
 type keeper interface {
 	SetGauge(string, float64) error
 	SetCounter(string, int64) error
-	GetMetric(string, string) (string, error)
+	GetMetric(models.MetricType, string) (string, error)
 
 	SetJSONGauge(string, *float64) error
 	SetJSONCounter(string, *int64) error
-	GetJSONMetric(string, string) (models.Metrics, error)
+	GetJSONMetric(models.MetricType, string) (models.Metrics, error)
 
-	GetTypeMetric(string) interface{}
+	GetTypeMetric(models.MetricType) interface{}
 }
 
 type handler struct {
@@ -112,7 +112,8 @@ func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
 
 func (h *handler) UpdatedMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		typeM := chi.URLParam(req, "typeM")
+		tM := chi.URLParam(req, "typeM")
+		typeM := models.MetricType(tM)
 		nameM := chi.URLParam(req, "nameM")
 
 		valueM := chi.URLParam(req, "valueM")
@@ -122,7 +123,7 @@ func (h *handler) UpdatedMetric() http.HandlerFunc {
 			return
 		}
 		switch typeM {
-		case "gauge":
+		case models.MetricGauge:
 			val, err := service.PrepareFloat64Data(valueM)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
@@ -133,7 +134,7 @@ func (h *handler) UpdatedMetric() http.HandlerFunc {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 				return
 			}
-		case "counter":
+		case models.MetricCounter:
 			i, err := service.PrepareInt64Data(valueM)
 			if err != nil {
 				http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
@@ -168,7 +169,9 @@ func (h *handler) UpdatedMetric() http.HandlerFunc {
 
 func (h *handler) GetMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		typeM := chi.URLParam(req, "typeM")
+		tM := chi.URLParam(req, "typeM")
+		typeM := models.MetricType(tM)
+
 		nameM := chi.URLParam(req, "nameM")
 
 		if typeM == "" || nameM == "" {
@@ -334,8 +337,8 @@ func (h *handler) GetAllMetrics() http.HandlerFunc {
 			Gauge   interface{}
 			Counter interface{}
 		}{
-			Gauge:   getMetrics(h.memStorage, "gauge", h.ClientDB, h.DBPostgres),
-			Counter: getMetrics(h.memStorage, "counter", h.ClientDB, h.DBPostgres),
+			Gauge:   getMetrics(h.memStorage, models.MetricGauge, h.ClientDB, h.DBPostgres),
+			Counter: getMetrics(h.memStorage, models.MetricCounter, h.ClientDB, h.DBPostgres),
 		})
 		tmplSize := len(buf.Bytes())
 
@@ -347,7 +350,7 @@ func (h *handler) GetAllMetrics() http.HandlerFunc {
 	}
 }
 
-func getJSONorDBmetrics(m keeper, MType, ID string, client *db.DB, DBPostgres *pg.PgStorage) (models.Metrics, error) {
+func getJSONorDBmetrics(m keeper, MType models.MetricType, ID string, client *db.DB, DBPostgres *pg.PgStorage) (models.Metrics, error) {
 	metricStorage := models.Metrics{}
 	var err error = nil
 	if client.DB == nil {
@@ -362,14 +365,14 @@ func getJSONorDBmetrics(m keeper, MType, ID string, client *db.DB, DBPostgres *p
 	return metricStorage, nil
 }
 
-func setJSONorDBmetric(m keeper, MType, ID string, value *float64, delta *int64, client *db.DB, DBPostgres *pg.PgStorage) error {
+func setJSONorDBmetric(m keeper, MType models.MetricType, ID string, value *float64, delta *int64, client *db.DB, DBPostgres *pg.PgStorage) error {
 	var err error = nil
 
 	deltaDefault := int64(0)
 	valueDefault := float64(0)
 
 	switch MType {
-	case "gauge":
+	case models.MetricGauge:
 		if client.DB == nil {
 			err = m.SetJSONGauge(ID, value)
 		} else {
@@ -378,7 +381,7 @@ func setJSONorDBmetric(m keeper, MType, ID string, value *float64, delta *int64,
 		if err != nil {
 			return err
 		}
-	case "counter":
+	case models.MetricCounter:
 		if client.DB == nil {
 			err = m.SetJSONCounter(ID, delta)
 		} else {
@@ -393,7 +396,7 @@ func setJSONorDBmetric(m keeper, MType, ID string, value *float64, delta *int64,
 	return nil
 }
 
-func getMetrics(m keeper, MType string, client *db.DB, DBPostgres *pg.PgStorage) interface{} {
+func getMetrics(m keeper, MType models.MetricType, client *db.DB, DBPostgres *pg.PgStorage) interface{} {
 	if client.DB == nil {
 		return m.GetTypeMetric(MType)
 	} else {
