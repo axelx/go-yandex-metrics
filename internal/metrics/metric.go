@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
+	"github.com/axelx/go-yandex-metrics/internal/hash"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/service"
 	"math/rand"
@@ -142,6 +143,9 @@ func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
+	if c.FlagHashKey != "" {
+		req.Header.Set("HashSHA256", hash.GetHashSHA256Base64(metricsJSON, c.FlagHashKey))
+	}
 	resp, err := c.Client.Do(req)
 
 	if err != nil {

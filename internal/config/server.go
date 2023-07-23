@@ -14,11 +14,12 @@ type ConfigServer struct {
 	FlagFileStoragePath string
 	FlagRestore         bool
 	FlagDatabaseDSN     string
+	FlagHashKey         string
 }
 
 func (c *ConfigServer) String() string {
-	return fmt.Sprintf("FlagRunAddr: %s, FlagLogLevel: %s, FlagStoreInternal: %v, FlagFileStoragePath: %s, FlagRestore: %v, FlagDatabaseDSN: %s",
-		c.FlagRunAddr, c.FlagLogLevel, c.FlagStoreInternal, c.FlagFileStoragePath, c.FlagRestore, c.FlagDatabaseDSN)
+	return fmt.Sprintf("FlagRunAddr: %s, FlagLogLevel: %s, FlagStoreInternal: %v, FlagFileStoragePath: %s, FlagRestore: %v, FlagDatabaseDSN: %s, FlagHashKey: %s",
+		c.FlagRunAddr, c.FlagLogLevel, c.FlagStoreInternal, c.FlagFileStoragePath, c.FlagRestore, c.FlagDatabaseDSN, c.FlagHashKey)
 }
 
 func NewConfigServer() *ConfigServer {
@@ -29,6 +30,7 @@ func NewConfigServer() *ConfigServer {
 		FlagFileStoragePath: "",
 		FlagRestore:         true,
 		FlagDatabaseDSN:     "",
+		FlagHashKey:         "",
 	}
 	parseFlagsServer(&conf)
 
@@ -42,6 +44,7 @@ func parseFlagsServer(c *ConfigServer) {
 	flag.StringVar(&c.FlagFileStoragePath, "f", "/tmp/metrics-db.json", "FILE_STORAGE_PATH string")
 	flag.BoolVar(&c.FlagRestore, "r", true, "RESTORE true/false")
 	flag.StringVar(&c.FlagDatabaseDSN, "d", "", "DATABASE_DSN string")
+	flag.StringVar(&c.FlagHashKey, "k", "", "hash key")
 
 	flag.Parse()
 
@@ -66,5 +69,8 @@ func parseFlagsServer(c *ConfigServer) {
 	}
 	if envDatabaseDSN := os.Getenv("DATABASE_DSN"); envDatabaseDSN != "" {
 		c.FlagDatabaseDSN = envDatabaseDSN
+	}
+	if envKey := os.Getenv("KEY"); envKey != "" {
+		c.FlagHashKey = envKey
 	}
 }

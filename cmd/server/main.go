@@ -42,7 +42,7 @@ func main() {
 
 	go metricStorage.UpdateFile()
 
-	hd := handlers.New(&metricStorage, lg, newClient, NewDBStorage)
+	hd := handlers.New(&metricStorage, lg, newClient, NewDBStorage, conf.FlagHashKey)
 	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router()); err != nil {
 		panic(err)
 	}

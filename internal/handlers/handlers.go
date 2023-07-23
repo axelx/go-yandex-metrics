@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/axelx/go-yandex-metrics/internal/hash"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/mgzip"
 	"github.com/axelx/go-yandex-metrics/internal/models"
@@ -36,14 +37,16 @@ type handler struct {
 	Logger     *zap.Logger
 	ClientDB   *db.DB
 	DBPostgres *pg.PgStorage
+	HashKey    string
 }
 
-func New(k keeper, log *zap.Logger, newClient *db.DB, NewDBStorage *pg.PgStorage) handler {
+func New(k keeper, log *zap.Logger, newClient *db.DB, NewDBStorage *pg.PgStorage, hashKey string) handler {
 	return handler{
 		memStorage: k,
 		Logger:     log,
 		ClientDB:   newClient,
 		DBPostgres: NewDBStorage,
+		HashKey:    hashKey,
 	}
 }
 
@@ -268,6 +271,15 @@ func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 			return
 		}
 
+		if h.HashKey != "" {
+			hashHeader := req.Header.Get("HashSHA256")
+			metricsJSON, _ := json.Marshal(metrics)
+			if !checkHash(h.HashKey, hashHeader, metricsJSON, h.Logger) {
+				http.Error(res, "StatusNotFound", http.StatusNotFound)
+				return
+			}
+		}
+
 		if len(metrics) == 0 {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
@@ -280,6 +292,9 @@ func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 		}
 
 		res.Header().Set("Content-Type", "application/json")
+		if h.HashKey != "" {
+			req.Header.Set("HashSHA256", hash.GetHashSHA256Base64([]byte("{}"), h.HashKey))
+		}
 		res.WriteHeader(http.StatusOK)
 		res.Write([]byte("{}"))
 
@@ -402,4 +417,19 @@ func getMetrics(m keeper, MType models.MetricType, client *db.DB, DBPostgres *pg
 	} else {
 		return DBPostgres.GetDBMetrics(MType)
 	}
+}
+
+func checkHash(key, hashHeader string, data []byte, log *zap.Logger) bool {
+	ha := hash.GetHashSHA256Base64(data, key)
+
+	log.Info("checkHash",
+		zap.String("hashHeader", hashHeader),
+		zap.String("calculated hash", ha),
+		zap.String("key", key),
+	)
+
+	if hashHeader == ha {
+		return true
+	}
+	return false
 }
