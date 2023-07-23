@@ -428,8 +428,5 @@ func checkHash(key, hashHeader string, data []byte, log *zap.Logger) bool {
 		zap.String("key", key),
 	)
 
-	if hashHeader == ha {
-		return true
-	}
-	return false
+	return hashHeader == ha
 }
