@@ -68,11 +68,11 @@ func (m *Metric) CreateJobs(jobs chan models.Metrics) {
 func (m *Metric) Poll() {
 	me := new(runtime.MemStats)
 
-	m_gopsutil, err := mem.VirtualMemory()
+	mGopsutil, err := mem.VirtualMemory()
 	if err != nil {
 		fmt.Println(err)
 	}
-	pc_gopsutil, err := cpu.Percent(time.Duration(m.conf.PollFrequency)*time.Second, true)
+	pcGopsutil, err := cpu.Percent(time.Duration(m.conf.PollFrequency)*time.Second, true)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -83,9 +83,9 @@ func (m *Metric) Poll() {
 	for {
 		runtime.ReadMemStats(me)
 		m.data = []models.Metrics{}
-		m.data = append(m.data, models.Metrics{ID: "TotalMemory", MType: "gauge", Value: service.Float64ToPointerFloat64(float64(m_gopsutil.Total))})
-		m.data = append(m.data, models.Metrics{ID: "FreeMemory", MType: "gauge", Value: service.Float64ToPointerFloat64(float64(m_gopsutil.Free))})
-		m.data = append(m.data, models.Metrics{ID: "CPUutilization1", MType: "gauge", Value: service.Float64ToPointerFloat64(pc_gopsutil[0])})
+		m.data = append(m.data, models.Metrics{ID: "TotalMemory", MType: "gauge", Value: service.Float64ToPointerFloat64(float64(mGopsutil.Total))})
+		m.data = append(m.data, models.Metrics{ID: "FreeMemory", MType: "gauge", Value: service.Float64ToPointerFloat64(float64(mGopsutil.Free))})
+		m.data = append(m.data, models.Metrics{ID: "CPUutilization1", MType: "gauge", Value: service.Float64ToPointerFloat64(pcGopsutil[0])})
 
 		m.data = append(m.data, models.Metrics{ID: "RandomValue", MType: "gauge", Value: service.Float64ToPointerFloat64(rand.Float64())})
 		m.data = append(m.data, models.Metrics{ID: "PollCount", MType: "counter", Delta: service.Int64ToPointerInt64(int64(PollCount))})

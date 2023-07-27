@@ -22,16 +22,13 @@ func main() {
 		for {
 			metric.Poll()
 		}
-		wg.Done()
 	}()
 	//производим отправку пачкой метрики
 	wg.Add(1)
 	go func() {
 		for {
 			metric.ReportBatch()
-
 		}
-		wg.Done()
 	}()
 
 	jobs := make(chan models.Metrics, 30)
