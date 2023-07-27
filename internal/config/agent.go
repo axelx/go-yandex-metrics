@@ -13,6 +13,7 @@ type ConfigAgentFlag struct {
 	FlagReportFrequency int
 	FlagPollFrequency   int
 	FlagHashKey         string
+	FlagRateLimit       int
 }
 
 type ConfigAgent struct {
@@ -22,6 +23,7 @@ type ConfigAgent struct {
 	PollFrequency   int
 	RetryIntervals  []time.Duration
 	FlagHashKey     string
+	FlagRateLimit   int
 }
 
 // ////// middleware
@@ -58,6 +60,7 @@ func NewConfigAgent() ConfigAgent {
 		FlagReportFrequency: 1,
 		FlagPollFrequency:   1,
 		FlagHashKey:         "",
+		FlagRateLimit:       1,
 	}
 	parseFlagsAgent(&cf)
 
@@ -73,6 +76,7 @@ func NewConfigAgent() ConfigAgent {
 		PollFrequency:   2,
 		RetryIntervals:  []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
 		FlagHashKey:     "",
+		FlagRateLimit:   1,
 	}
 
 	if cf.FlagServerAddr != "" {
@@ -87,6 +91,9 @@ func NewConfigAgent() ConfigAgent {
 	if cf.FlagHashKey != "" {
 		confDefault.FlagHashKey = cf.FlagHashKey
 	}
+	if cf.FlagRateLimit != 0 {
+		confDefault.FlagRateLimit = cf.FlagRateLimit
+	}
 	return confDefault
 }
 
@@ -95,6 +102,7 @@ func parseFlagsAgent(c *ConfigAgentFlag) {
 	flag.IntVar(&c.FlagReportFrequency, "r", 10, "report frequency to run server")
 	flag.IntVar(&c.FlagPollFrequency, "p", 2, "poll frequency")
 	flag.StringVar(&c.FlagHashKey, "k", "", "hash key")
+	flag.IntVar(&c.FlagRateLimit, "l", 1, "simultaneous outgoing requests to the server")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
@@ -112,5 +120,10 @@ func parseFlagsAgent(c *ConfigAgentFlag) {
 	}
 	if envKey := os.Getenv("KEY"); envKey != "" {
 		c.FlagHashKey = envKey
+	}
+	if envFlagRateLimit := os.Getenv("RATE_LIMIT"); envFlagRateLimit != "" {
+		if v, err := strconv.Atoi(envFlagRateLimit); err == nil {
+			c.FlagRateLimit = v
+		}
 	}
 }
