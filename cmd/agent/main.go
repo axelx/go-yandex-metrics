@@ -50,7 +50,7 @@ func main() {
 
 func worker(id int, jobs <-chan models.Metrics, c config.ConfigAgent, log *zap.Logger) {
 	for job := range jobs {
-		str := fmt.Sprintf("рабочий %d, Start запущена задача %s", id, job)
+		str := fmt.Sprintf("рабочий %d, Start запущена задача", id)
 		log.Info("Worker", zap.String("worker", str))
 		metrics.SendRequestMetric(c, job, log)
 	}

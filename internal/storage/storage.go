@@ -131,12 +131,12 @@ func dataUpdateOrAdd(sm []models.Metrics, metric models.Metrics) []models.Metric
 	for _, m := range sm {
 		if m.MType == "gauge" {
 			if m.ID == metric.ID {
-				m.Value = metric.Value
+				*m.Value = *metric.Value
 				addF = false
 			}
 		} else if m.MType == "counter" {
 			if m.ID == metric.ID {
-				m.Delta = metric.Delta
+				*m.Delta = *metric.Delta
 				addF = false
 			}
 		}
@@ -185,7 +185,7 @@ func (m *MemStorage) RestoreFromFile() {
 			m.counter[metric.ID] = *metric.Delta
 		}
 
-		s := fmt.Sprintf("load metrics: %s, $s, $s, $s", metric.MType, metric.ID, *metric.Value, *metric.Delta)
+		s := fmt.Sprintf("load metrics: %s, %s, %s, %s", metric.MType, metric.ID, *metric.Value, *metric.Delta)
 		m.logger.Info("load metrics ", zap.String("info", s))
 	}
 }

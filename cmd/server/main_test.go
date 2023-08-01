@@ -31,11 +31,12 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 }
 
 func TestGetMetric(t *testing.T) {
-	m := storage.New("", 300, false)
+	lg := logger.Initialize("info")
+	m := storage.New("", 300, false, lg)
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
-	NewDBStorage := pg.NewDBStorage()
+	NewDBStorage := pg.NewDBStorage(lg)
 	hd := handlers.New(&m, logger.Initialize("info"), NewDBStorage.DB, NewDBStorage, "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
@@ -57,11 +58,12 @@ func TestGetMetric(t *testing.T) {
 }
 
 func TestUpdatedMetric(t *testing.T) {
-	m := storage.New("", 300, false)
+	lg := logger.Initialize("info")
+	m := storage.New("", 300, false, lg)
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
-	NewDBStorage := pg.NewDBStorage()
+	NewDBStorage := pg.NewDBStorage(lg)
 	hd := handlers.New(&m, logger.Initialize("info"), NewDBStorage.DB, NewDBStorage, "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
@@ -107,13 +109,14 @@ func testJSONRequest(t *testing.T, ts *httptest.Server, method, path string, bod
 }
 
 func TestGetJsonMetric(t *testing.T) {
-	m := storage.New("", 300, false)
+	lg := logger.Initialize("info")
+	m := storage.New("", 300, false, lg)
 	g := 5.5
 	c := int64(5)
 	m.SetJSONGauge("HeapAlloc", &g)
 	m.SetJSONCounter("PollCount", &c)
 
-	NewDBStorage := pg.NewDBStorage()
+	NewDBStorage := pg.NewDBStorage(lg)
 	hd := handlers.New(&m, logger.Initialize("info"), NewDBStorage.DB, NewDBStorage, "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
@@ -148,13 +151,14 @@ func TestGetJsonMetric(t *testing.T) {
 }
 
 func TestJsonUpdatedMetric(t *testing.T) {
-	m := storage.New("", 300, false)
+	lg := logger.Initialize("info")
+	m := storage.New("", 300, false, lg)
 	g := 5.5
 	c := int64(5)
 	m.SetJSONGauge("HeapAlloc", &g)
 	m.SetJSONCounter("PollCount", &c)
 
-	NewDBStorage := pg.NewDBStorage()
+	NewDBStorage := pg.NewDBStorage(lg)
 	hd := handlers.New(&m, logger.Initialize("info"), NewDBStorage.DB, NewDBStorage, "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()

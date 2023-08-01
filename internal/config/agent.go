@@ -28,8 +28,8 @@ type ConfigAgent struct {
 }
 
 func (c *ConfigAgent) String() string {
-	return fmt.Sprintf("Client: %s, BaseURL: %s, ReportFrequency: %v, PollFrequency: %s, RetryIntervals: %v, FlagHashKey: %s, FlagRateLimit: %s",
-		c.Client, c.BaseURL, c.ReportFrequency, c.PollFrequency, c.RetryIntervals, c.FlagHashKey, c.FlagRateLimit)
+	return fmt.Sprintf("Client: , BaseURL: %s, ReportFrequency: %v, PollFrequency: %s, RetryIntervals: %v, FlagHashKey: %s, FlagRateLimit: %s",
+		c.BaseURL, c.ReportFrequency, c.PollFrequency, c.RetryIntervals, c.FlagHashKey, c.FlagRateLimit)
 }
 
 // ////// middleware
