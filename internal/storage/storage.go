@@ -185,7 +185,7 @@ func (m *MemStorage) RestoreFromFile() {
 			m.counter[metric.ID] = *metric.Delta
 		}
 
-		s := fmt.Sprintf("load metrics: %s, %s, %f, %s", metric.MType, metric.ID, *metric.Value, *metric.Delta)
+		s := fmt.Sprintf("load metrics: %s, %s, %f, %d", metric.MType, metric.ID, *metric.Value, *metric.Delta)
 		m.logger.Info("load metrics ", zap.String("info", s))
 	}
 }
