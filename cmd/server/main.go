@@ -1,40 +1,43 @@
 package main
 
 import (
+	"errors"
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/pg"
-	"github.com/axelx/go-yandex-metrics/internal/pg/db"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 	"net/http"
 )
 
+var err = errors.New("")
+
 func main() {
 
 	conf := config.NewConfigServer()
-	metricStorage := storage.New(conf.FlagFileStoragePath, conf.FlagStoreInternal, conf.FlagRestore)
 	lg := logger.Initialize("info")
 	lg.Info("Running server", zap.String("config", conf.String()))
+	metricStorage := storage.New(conf.FlagFileStoragePath, conf.FlagStoreInternal, conf.FlagRestore, lg)
 
-	newClient := db.NewClient()
-	NewDBStorage := pg.NewDBStorage(newClient)
+	NewDBStorage := pg.NewDBStorage(lg)
 
-	if err := newClient.Open(conf.FlagDatabaseDSN); err != nil {
-		lg.Error("Error not connect to db",
-			zap.String("about func", "main: newClient.Open"),
-			zap.String("about ERR", err.Error()),
-		)
+	//подключаемся к базе
+	NewDBStorage.DB, err = sqlx.Connect("pgx", conf.FlagDatabaseDSN)
+	if err != nil {
+		lg.Error("Error not connect to db", zap.String("about ERR", err.Error()))
 	}
-	// создаем таблицы при старте сервера
-	if newClient.DB != nil {
-		newClient.CreateTable()
-	}
+	NewDBStorage.DB.SetMaxOpenConns(10)
 
 	defer func() {
-		_ = newClient.Close()
+		NewDBStorage.DB.Close()
 	}()
+
+	// создаем таблицы при старте сервера
+	if NewDBStorage.DB != nil {
+		NewDBStorage.CreateTable()
+	}
 
 	if conf.FlagFileStoragePath != "" {
 		metricStorage.RestoreFromFile()
@@ -42,7 +45,7 @@ func main() {
 
 	go metricStorage.UpdateFile()
 
-	hd := handlers.New(&metricStorage, lg, newClient, NewDBStorage, conf.FlagHashKey)
+	hd := handlers.New(&metricStorage, lg, NewDBStorage.DB, NewDBStorage, conf.FlagHashKey)
 	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router()); err != nil {
 		panic(err)
 	}

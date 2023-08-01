@@ -7,7 +7,6 @@ import (
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/pg"
-	"github.com/axelx/go-yandex-metrics/internal/pg/db"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,8 +35,8 @@ func TestGetMetric(t *testing.T) {
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
-	newClient := db.NewClient()
-	hd := handlers.New(&m, logger.Initialize("info"), newClient, pg.NewDBStorage(newClient), "")
+	NewDBStorage := pg.NewDBStorage()
+	hd := handlers.New(&m, logger.Initialize("info"), NewDBStorage.DB, NewDBStorage, "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -62,8 +61,8 @@ func TestUpdatedMetric(t *testing.T) {
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
-	newClient := db.NewClient()
-	hd := handlers.New(&m, logger.Initialize("info"), newClient, pg.NewDBStorage(newClient), "")
+	NewDBStorage := pg.NewDBStorage()
+	hd := handlers.New(&m, logger.Initialize("info"), NewDBStorage.DB, NewDBStorage, "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -114,8 +113,8 @@ func TestGetJsonMetric(t *testing.T) {
 	m.SetJSONGauge("HeapAlloc", &g)
 	m.SetJSONCounter("PollCount", &c)
 
-	newClient := db.NewClient()
-	hd := handlers.New(&m, logger.Initialize("info"), newClient, pg.NewDBStorage(newClient), "")
+	NewDBStorage := pg.NewDBStorage()
+	hd := handlers.New(&m, logger.Initialize("info"), NewDBStorage.DB, NewDBStorage, "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -155,8 +154,8 @@ func TestJsonUpdatedMetric(t *testing.T) {
 	m.SetJSONGauge("HeapAlloc", &g)
 	m.SetJSONCounter("PollCount", &c)
 
-	newClient := db.NewClient()
-	hd := handlers.New(&m, logger.Initialize("info"), newClient, pg.NewDBStorage(newClient), "")
+	NewDBStorage := pg.NewDBStorage()
+	hd := handlers.New(&m, logger.Initialize("info"), NewDBStorage.DB, NewDBStorage, "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 

@@ -10,9 +10,9 @@ import (
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/mtemplate"
 	"github.com/axelx/go-yandex-metrics/internal/pg"
-	"github.com/axelx/go-yandex-metrics/internal/pg/db"
 	"github.com/axelx/go-yandex-metrics/internal/service"
 	"github.com/go-chi/chi/v5"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -35,16 +35,16 @@ type keeper interface {
 type handler struct {
 	memStorage keeper
 	Logger     *zap.Logger
-	ClientDB   *db.DB
+	DB         *sqlx.DB
 	DBPostgres *pg.PgStorage
 	HashKey    string
 }
 
-func New(k keeper, log *zap.Logger, newClient *db.DB, NewDBStorage *pg.PgStorage, hashKey string) handler {
+func New(k keeper, log *zap.Logger, db *sqlx.DB, NewDBStorage *pg.PgStorage, hashKey string) handler {
 	return handler{
 		memStorage: k,
 		Logger:     log,
-		ClientDB:   newClient,
+		DB:         db,
 		DBPostgres: NewDBStorage,
 		HashKey:    hashKey,
 	}
@@ -68,7 +68,7 @@ func (h *handler) Router() chi.Router {
 
 func (h *handler) DBConnect() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		if h.ClientDB.DB != nil {
+		if h.DB != nil {
 			res.WriteHeader(http.StatusOK)
 			_, err := res.Write([]byte(""))
 			if err != nil {
@@ -217,20 +217,20 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 			return
 		}
 
-		deltaDefault := int64(0)
-		valueDefault := float64(0)
+		var deltaDefault int64
+		var valueDefault float64
 		if metrics.MType == "" || metrics.ID == "" || (metrics.Delta == &deltaDefault && metrics.Value == &valueDefault) {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
 		}
 
-		err := setJSONorDBmetric(h.memStorage, metrics.MType, metrics.ID, metrics.Value, metrics.Delta, h.ClientDB, h.DBPostgres)
+		err := h.setJSONorDBmetric(h.memStorage, metrics.MType, metrics.ID, metrics.Value, metrics.Delta, h.DB, h.DBPostgres)
 		if err != nil {
 			http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 			return
 		}
 
-		metricStorage, err := getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, h.ClientDB, h.DBPostgres)
+		metricStorage, err := h.getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, h.DB, h.DBPostgres)
 		if err != nil {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
@@ -274,7 +274,7 @@ func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 		if h.HashKey != "" {
 			hashHeader := req.Header.Get("HashSHA256")
 			metricsJSON, _ := json.Marshal(metrics)
-			if !checkHash(h.HashKey, hashHeader, metricsJSON, h.Logger) {
+			if !h.checkHash(h.HashKey, hashHeader, metricsJSON, h.Logger) {
 				http.Error(res, "StatusNotFound", http.StatusNotFound)
 				return
 			}
@@ -320,7 +320,7 @@ func (h *handler) GetJSONMetric() http.HandlerFunc {
 			return
 		}
 
-		metric, err := getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, h.ClientDB, h.DBPostgres)
+		metric, err := h.getJSONorDBmetrics(h.memStorage, metrics.MType, metrics.ID, h.DB, h.DBPostgres)
 		if err != nil {
 			http.Error(res, "StatusNotFound", http.StatusNotFound)
 			return
@@ -328,7 +328,10 @@ func (h *handler) GetJSONMetric() http.HandlerFunc {
 
 		metricsJSON, err := json.Marshal(metric)
 		if err != nil {
-			fmt.Println("Error json marshal metrics:", err)
+			h.Logger.Error("Error json marshal metrics:",
+				zap.String("about func", "GetJSONMetric"),
+				zap.String("about ERR", err.Error()),
+			)
 		}
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusOK)
@@ -352,8 +355,8 @@ func (h *handler) GetAllMetrics() http.HandlerFunc {
 			Gauge   interface{}
 			Counter interface{}
 		}{
-			Gauge:   getMetrics(h.memStorage, models.MetricGauge, h.ClientDB, h.DBPostgres),
-			Counter: getMetrics(h.memStorage, models.MetricCounter, h.ClientDB, h.DBPostgres),
+			Gauge:   h.getMetrics(h.memStorage, models.MetricGauge, h.DB, h.DBPostgres),
+			Counter: h.getMetrics(h.memStorage, models.MetricCounter, h.DB, h.DBPostgres),
 		})
 		tmplSize := len(buf.Bytes())
 
@@ -365,13 +368,12 @@ func (h *handler) GetAllMetrics() http.HandlerFunc {
 	}
 }
 
-func getJSONorDBmetrics(m keeper, MType models.MetricType, ID string, client *db.DB, DBPostgres *pg.PgStorage) (models.Metrics, error) {
+func (h *handler) getJSONorDBmetrics(m keeper, MType models.MetricType, ID string, DB *sqlx.DB, DBPostgres *pg.PgStorage) (models.Metrics, error) {
 	metricStorage := models.Metrics{}
 	var err error = nil
-	if client.DB == nil {
+	if DB == nil {
 		metricStorage, err = m.GetJSONMetric(MType, ID)
 	} else {
-		fmt.Println(client, MType, ID)
 		metricStorage, err = DBPostgres.GetDBMetric(MType, ID)
 	}
 	if err != nil {
@@ -380,7 +382,7 @@ func getJSONorDBmetrics(m keeper, MType models.MetricType, ID string, client *db
 	return metricStorage, nil
 }
 
-func setJSONorDBmetric(m keeper, MType models.MetricType, ID string, value *float64, delta *int64, client *db.DB, DBPostgres *pg.PgStorage) error {
+func (h *handler) setJSONorDBmetric(m keeper, MType models.MetricType, ID string, value *float64, delta *int64, DB *sqlx.DB, DBPostgres *pg.PgStorage) error {
 	var err error = nil
 
 	deltaDefault := int64(0)
@@ -388,7 +390,7 @@ func setJSONorDBmetric(m keeper, MType models.MetricType, ID string, value *floa
 
 	switch MType {
 	case models.MetricGauge:
-		if client.DB == nil {
+		if DB == nil {
 			err = m.SetJSONGauge(ID, value)
 		} else {
 			err = DBPostgres.SetDBMetric(MType, ID, value, &deltaDefault)
@@ -397,7 +399,7 @@ func setJSONorDBmetric(m keeper, MType models.MetricType, ID string, value *floa
 			return err
 		}
 	case models.MetricCounter:
-		if client.DB == nil {
+		if DB == nil {
 			err = m.SetJSONCounter(ID, delta)
 		} else {
 			err = DBPostgres.SetDBMetric(MType, ID, &valueDefault, delta)
@@ -411,15 +413,15 @@ func setJSONorDBmetric(m keeper, MType models.MetricType, ID string, value *floa
 	return nil
 }
 
-func getMetrics(m keeper, MType models.MetricType, client *db.DB, DBPostgres *pg.PgStorage) interface{} {
-	if client.DB == nil {
+func (h *handler) getMetrics(m keeper, MType models.MetricType, DB *sqlx.DB, DBPostgres *pg.PgStorage) interface{} {
+	if DB == nil {
 		return m.GetTypeMetric(MType)
 	} else {
 		return DBPostgres.GetDBMetrics(MType)
 	}
 }
 
-func checkHash(key, hashHeader string, data []byte, log *zap.Logger) bool {
+func (h *handler) checkHash(key, hashHeader string, data []byte, log *zap.Logger) bool {
 	ha := hash.GetHashSHA256Base64(data, key)
 
 	log.Info("checkHash",

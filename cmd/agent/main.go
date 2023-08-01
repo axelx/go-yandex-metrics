@@ -3,17 +3,20 @@ package main
 import (
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
+	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/metrics"
 	"github.com/axelx/go-yandex-metrics/internal/models"
+	"go.uber.org/zap"
 	"sync"
 )
 
 func main() {
 	conf := config.NewConfigAgent()
 
-	fmt.Println("Running server on", conf.BaseURL, conf.ReportFrequency, conf.PollFrequency)
+	lg := logger.Initialize("info")
+	lg.Info("Running server", zap.String("config", conf.String()))
 
-	metric := metrics.New(conf)
+	metric := metrics.New(conf, lg)
 
 	var wg sync.WaitGroup
 	//производим опрос/обновление метрик
@@ -23,8 +26,8 @@ func main() {
 			metric.Poll()
 		}
 	}()
-	//производим отправку пачкой метрики
 	wg.Add(1)
+	//производим отправку пачкой метрики
 	go func() {
 		for {
 			metric.ReportBatch()
@@ -40,14 +43,15 @@ func main() {
 
 	// создаем воркеры которые будут отправлять метрики из канала jobs
 	for w := 1; w <= conf.FlagRateLimit; w++ {
-		go worker(w, jobs, conf)
+		go worker(w, jobs, conf, lg)
 	}
 	wg.Wait()
 }
 
-func worker(id int, jobs <-chan models.Metrics, c config.ConfigAgent) {
+func worker(id int, jobs <-chan models.Metrics, c config.ConfigAgent, log *zap.Logger) {
 	for job := range jobs {
-		fmt.Println("рабочий", id, "Start запущен задача", job)
-		metrics.SendRequestMetric(c, job)
+		str := fmt.Sprintf("рабочий %d, Start запущена задача %s", id, job)
+		log.Info("Worker", zap.String("worker", str))
+		metrics.SendRequestMetric(c, job, log)
 	}
 }

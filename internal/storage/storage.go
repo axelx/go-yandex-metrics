@@ -5,9 +5,15 @@ import (
 	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/mos"
+	"go.uber.org/zap"
 	"reflect"
 	"strconv"
 	"time"
+)
+
+var (
+	ErrNotFoundMetric = errors.New("не найдена метрика")
+	ErrMetricIsNil    = errors.New("нулевая метрика или пустое название метрики")
 )
 
 type MemStorage struct {
@@ -16,15 +22,17 @@ type MemStorage struct {
 	fileName       string
 	UpdateInterval int
 	restore        bool
+	logger         *zap.Logger
 }
 
-func New(filename string, updateInterval int, restoreFromFile bool) MemStorage {
+func New(filename string, updateInterval int, restoreFromFile bool, log *zap.Logger) MemStorage {
 	return MemStorage{
 		gauge:          map[string]float64{},
 		counter:        map[string]int64{},
 		fileName:       filename,
 		UpdateInterval: updateInterval,
 		restore:        restoreFromFile,
+		logger:         log,
 	}
 }
 
@@ -39,26 +47,28 @@ func (m *MemStorage) SetCounter(nameMetric string, data int64) error {
 }
 
 func (m *MemStorage) GetMetric(typeMetric models.MetricType, nameMetric string) (string, error) {
-	err := errors.New("не найдена метрика")
 	switch typeMetric {
 	case models.MetricGauge:
 		v, t := m.gauge[nameMetric]
 		if !t {
-			return "", err
+			return "", ErrNotFoundMetric
 		}
 		return fmt.Sprint(v), nil
 	case models.MetricCounter:
 		v, t := m.counter[nameMetric]
 		if !t {
-			return "", err
+			return "", ErrNotFoundMetric
 		}
 		return strconv.FormatInt(v, 10), nil
 	default:
-		return "метрика не найдена", err
+		return "метрика не найдена", ErrNotFoundMetric
 	}
 }
 
 func (m *MemStorage) SetJSONGauge(nameMetric string, data *float64) error {
+	if nameMetric == "" || data == nil {
+		return ErrMetricIsNil
+	}
 	m.gauge[nameMetric] = *data
 	if m.UpdateInterval == 0 {
 		m.FileUpdate(models.Metrics{ID: nameMetric, MType: "gauge", Value: data})
@@ -67,6 +77,9 @@ func (m *MemStorage) SetJSONGauge(nameMetric string, data *float64) error {
 }
 
 func (m *MemStorage) SetJSONCounter(nameMetric string, data *int64) error {
+	if nameMetric == "" || data == nil {
+		return ErrMetricIsNil
+	}
 	m.counter[nameMetric] += *data
 	t := m.counter[nameMetric]
 	if m.UpdateInterval == 0 {
@@ -76,25 +89,24 @@ func (m *MemStorage) SetJSONCounter(nameMetric string, data *int64) error {
 }
 
 func (m *MemStorage) GetJSONMetric(typeMetric models.MetricType, nameMetric string) (models.Metrics, error) {
-	err := errors.New("не найдена метрика")
 	mt := models.Metrics{}
 	switch typeMetric {
 	case "gauge":
 		v, t := m.gauge[nameMetric]
 		if !t {
-			return mt, err
+			return mt, ErrNotFoundMetric
 		}
 		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Value: &v}
 		return mt, nil
 	case "counter":
 		v, t := m.counter[nameMetric]
 		if !t {
-			return mt, err
+			return mt, ErrNotFoundMetric
 		}
 		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Delta: &v}
 		return mt, nil
 	default:
-		return mt, err
+		return mt, ErrNotFoundMetric
 	}
 }
 
@@ -119,12 +131,12 @@ func dataUpdateOrAdd(sm []models.Metrics, metric models.Metrics) []models.Metric
 	for _, m := range sm {
 		if m.MType == "gauge" {
 			if m.ID == metric.ID {
-				*m.Value = *metric.Value
+				m.Value = metric.Value
 				addF = false
 			}
 		} else if m.MType == "counter" {
 			if m.ID == metric.ID {
-				*m.Delta = *metric.Delta
+				m.Delta = metric.Delta
 				addF = false
 			}
 		}
@@ -137,7 +149,7 @@ func dataUpdateOrAdd(sm []models.Metrics, metric models.Metrics) []models.Metric
 }
 
 func (m *MemStorage) ReadFile() []models.Metrics {
-	return mos.ReadAllFile(m.fileName)
+	return mos.ReadAllFile(m.fileName, m.logger)
 }
 func (m *MemStorage) SaveMetricToFile() error {
 	if m.fileName == "" {
@@ -166,18 +178,15 @@ func (m *MemStorage) RestoreFromFile() {
 		return
 	}
 	sv := m.ReadFile()
-	fmt.Println("sv", m.restore)
 	for _, metric := range sv {
-		if metric.Delta == nil {
-			fmt.Println("load:", metric.MType, metric.ID, *metric.Value)
-		} else {
-			fmt.Println("load:", metric.MType, metric.ID, *metric.Delta)
-		}
 		if metric.MType == models.MetricGauge {
 			m.gauge[metric.ID] = *metric.Value
 		} else if metric.MType == models.MetricCounter {
 			m.counter[metric.ID] = *metric.Delta
 		}
+
+		s := fmt.Sprintf("load metrics: %s, $s, $s, $s", metric.MType, metric.ID, *metric.Value, *metric.Delta)
+		m.logger.Info("load metrics ", zap.String("info", s))
 	}
 }
 
@@ -187,7 +196,8 @@ func (m *MemStorage) UpdateFile() {
 	}
 	for {
 		m.SaveMetricToFile()
-		fmt.Println("updateMemstorage from file ")
+		m.logger.Info("updateMemstorage from file ")
+
 		time.Sleep(time.Duration(m.UpdateInterval) * time.Second)
 	}
 }

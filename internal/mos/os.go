@@ -3,8 +3,8 @@ package mos
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/models"
+	"go.uber.org/zap"
 	"log"
 	"os"
 )
@@ -71,13 +71,13 @@ func SaveMetricsToFile(fileName string, metrics []models.Metrics) error {
 	}
 	return nil
 }
-func ReadAllFile(fileName string) []models.Metrics {
+func ReadAllFile(fileName string, log *zap.Logger) []models.Metrics {
 	if fileName == "" {
 		return nil
 	}
 	file, err := os.Open(fileName)
 	if err != nil {
-		fmt.Println("Open file err", err)
+		log.Error("Error mos.ReadAllFile", zap.String("about ERR", err.Error()))
 		return nil
 	}
 	defer file.Close()
@@ -91,7 +91,7 @@ func ReadAllFile(fileName string) []models.Metrics {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
+		log.Error("Error mos.ReadAllFile  ", zap.String("about ERR: scanner.Err; ", err.Error()))
 	}
 	return sm
 }

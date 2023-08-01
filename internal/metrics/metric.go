@@ -5,13 +5,13 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/hash"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/service"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
+	"go.uber.org/zap"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -19,14 +19,16 @@ import (
 )
 
 type Metric struct {
-	data []models.Metrics
-	conf config.ConfigAgent
+	data   []models.Metrics
+	conf   config.ConfigAgent
+	Logger *zap.Logger
 }
 
-func New(conf config.ConfigAgent) Metric {
+func New(conf config.ConfigAgent, logger *zap.Logger) Metric {
 	return Metric{
-		data: []models.Metrics{},
-		conf: conf,
+		data:   []models.Metrics{},
+		conf:   conf,
+		Logger: logger,
 	}
 }
 
@@ -38,7 +40,7 @@ func (m *Metric) ReportBatch() {
 	for {
 
 		for _, interval := range m.conf.RetryIntervals {
-			err := sendRequestSliceMetrics(m.conf, m.data)
+			err := sendRequestSliceMetrics(m.conf, m.data, m.Logger)
 			if err == nil {
 				break
 			}
@@ -70,11 +72,17 @@ func (m *Metric) Poll() {
 
 	mGopsutil, err := mem.VirtualMemory()
 	if err != nil {
-		fmt.Println(err)
+		m.Logger.Error("Error Poll",
+			zap.String("about func", "mGopsutil"),
+			zap.String("about ERR", err.Error()),
+		)
 	}
 	pcGopsutil, err := cpu.Percent(time.Duration(m.conf.PollFrequency)*time.Second, true)
 	if err != nil {
-		fmt.Println(err)
+		m.Logger.Error("Erro Poll",
+			zap.String("about func", "pcGopsutil"),
+			zap.String("about ERR", err.Error()),
+		)
 	}
 
 	PollCount := 0
@@ -127,44 +135,50 @@ func (m *Metric) Poll() {
 	}
 }
 
-func sendRequestSliceMetrics(c config.ConfigAgent, metrics []models.Metrics) error {
+func sendRequestSliceMetrics(c config.ConfigAgent, metrics []models.Metrics, log *zap.Logger) error {
 	metricsJSON, err := json.Marshal(metrics)
 	if err != nil {
 		return err
 	}
-	err = sendRequest("updates/", c, metricsJSON)
+	err = sendRequest("updates/", c, metricsJSON, log)
 	if err != nil {
-		fmt.Printf("Error sendRequest: %s\n", err)
+		log.Error("Error sendRequest", zap.String("about ERR", err.Error()))
 		return err
 	}
 	return nil
 }
-func SendRequestMetric(c config.ConfigAgent, metric models.Metrics) error {
+func SendRequestMetric(c config.ConfigAgent, metric models.Metrics, log *zap.Logger) error {
 	metricsJSON, err := json.Marshal(metric)
 	if err != nil {
-		fmt.Printf("Error metricsJSON: %s\n", err)
+		log.Error("Error SendRequestMetric", zap.String("about ERR", err.Error()))
 		return err
 	}
-	err = sendRequest("update/", c, metricsJSON)
+	err = sendRequest("update/", c, metricsJSON, log)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte) error {
+func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte, log *zap.Logger) error {
 	buf := bytes.NewBuffer(nil)
 	zb := gzip.NewWriter(buf)
 	_, err := zb.Write([]byte(metricsJSON))
 	if err != nil {
-		fmt.Println("Error zb.Write([]byte(metricsJSON)): ", err)
+		log.Error("Error zb.Write([]byte(metricsJSON))",
+			zap.String("about func", "sendRequest"),
+			zap.String("about ERR", err.Error()),
+		)
 		return err
 	}
 	zb.Close()
 
 	req, err := http.NewRequest("POST", c.BaseURL+url, buf)
 	if err != nil {
-		fmt.Println("Error create request:", err)
+		log.Error("Error create request",
+			zap.String("about func", "sendRequest"),
+			zap.String("about ERR", err.Error()),
+		)
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -175,12 +189,15 @@ func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte) error {
 	resp, err := c.Client.Do(req)
 
 	if err != nil {
-		fmt.Println("Error reporting metrics:", err, string(metricsJSON))
+		log.Error("Error reporting metrics:",
+			zap.String("about func", "sendRequest"),
+			zap.String("about metricJSON", string(metricsJSON)),
+			zap.String("about ERR", err.Error()),
+		)
 		return ErrDialUp
 	} else {
 		resp.Body.Close()
-
-		fmt.Printf("Metrics sent successfully! Send body: %s, Response body: \n", string(metricsJSON))
+		log.Info("Metrics sent successfully! Send body: %s, Response body: " + string(metricsJSON)) //zap.String("about func", "sendRequest"),
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -24,6 +25,11 @@ type ConfigAgent struct {
 	RetryIntervals  []time.Duration
 	FlagHashKey     string
 	FlagRateLimit   int
+}
+
+func (c *ConfigAgent) String() string {
+	return fmt.Sprintf("Client: %s, BaseURL: %s, ReportFrequency: %v, PollFrequency: %s, RetryIntervals: %v, FlagHashKey: %s, FlagRateLimit: %s",
+		c.Client, c.BaseURL, c.ReportFrequency, c.PollFrequency, c.RetryIntervals, c.FlagHashKey, c.FlagRateLimit)
 }
 
 // ////// middleware

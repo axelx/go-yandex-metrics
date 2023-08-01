@@ -3,52 +3,70 @@ package pg
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/axelx/go-yandex-metrics/internal/models"
-	"github.com/axelx/go-yandex-metrics/internal/pg/db"
 	_ "github.com/jackc/pgx/stdlib"
+	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 	"time"
 )
 
+const (
+	defaultMaxConnections = 10
+)
+
 type PgStorage struct {
-	Client *db.DB
-	//maxConnections int
+	DB             *sqlx.DB
+	maxConnections int
 	RetryIntervals []time.Duration
+	logger         *zap.Logger
 }
 
-func NewDBStorage(clientDB *db.DB) *PgStorage {
+func NewDBStorage(log *zap.Logger) *PgStorage {
 	return &PgStorage{
-		Client:         clientDB,
+		logger:         log,
 		RetryIntervals: []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
 	}
 }
 
+func (c *PgStorage) CreateTable() error {
+	_, err := c.DB.ExecContext(context.Background(),
+		` CREATE TABLE IF NOT EXISTS gauge (
+					 id serial PRIMARY KEY,
+					 name varchar(450) NOT NULL UNIQUE,
+					 value double precision NOT NULL DEFAULT '0.00'
+				);
+				CREATE TABLE IF NOT EXISTS counter (
+					id serial PRIMARY KEY,
+					name varchar(450) NOT NULL UNIQUE,
+					delta bigint NOT NULL DEFAULT '0'
+				);
+			`)
+	return err
+}
+
 func (c *PgStorage) GetDBMetric(typeMetric models.MetricType, nameMetric string) (models.Metrics, error) {
-	fmt.Println("GetDBMetric:")
 	err := errors.New("не найдена метрика")
 	mt := models.Metrics{}
 	switch typeMetric {
 	case models.MetricGauge:
-		row := c.Client.DB.QueryRowContext(context.Background(), ` SELECT value FROM gauge WHERE name = $1`, nameMetric)
-		fmt.Println("GetDBMetric: gauge:", nameMetric)
+		row := c.DB.QueryRowContext(context.Background(), ` SELECT value FROM gauge WHERE name = $1`, nameMetric)
 
 		var value float64
 		err = row.Scan(&value)
 		if err != nil {
-			fmt.Println("err GetDBMetricс g:", err)
+			c.logger.Error("Error GetDBMetricс gauge:", zap.String("about ERR", err.Error()))
 			return mt, err
 		}
 
 		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Value: &value}
 		return mt, nil
 	case models.MetricCounter:
-		row := c.Client.DB.QueryRowContext(context.Background(), ` SELECT delta FROM counter WHERE name = $1`, nameMetric)
-		fmt.Println("GetDBMetric: counter:", nameMetric)
+		row := c.DB.QueryRowContext(context.Background(), ` SELECT delta FROM counter WHERE name = $1`, nameMetric)
 
 		var delta int64
 		err = row.Scan(&delta)
 		if err != nil {
-			fmt.Println(" err  GetDBMetric c:", err)
+			c.logger.Error("Error GetDBMetric сounter", zap.String("about ERR", err.Error()))
 			return mt, err
 		}
 		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Delta: &delta}
@@ -63,7 +81,7 @@ func (c *PgStorage) SetDBMetric(typeMetric models.MetricType, nameMetric string,
 	err := errors.New("не найдена метрика")
 	switch typeMetric {
 	case models.MetricGauge:
-		_, err := c.Client.DB.ExecContext(context.Background(),
+		_, err := c.DB.ExecContext(context.Background(),
 			`INSERT INTO gauge (name, value) VALUES ($1, $2)
 					ON CONFLICT (name) DO UPDATE SET value = $2;`, nameMetric, value)
 		if err != nil {
@@ -72,7 +90,7 @@ func (c *PgStorage) SetDBMetric(typeMetric models.MetricType, nameMetric string,
 
 		return nil
 	case models.MetricCounter:
-		_, err := c.Client.DB.ExecContext(context.Background(),
+		_, err := c.DB.ExecContext(context.Background(),
 			`INSERT INTO counter (name, delta) VALUES ($1, $2)
 					ON CONFLICT (name) DO UPDATE SET delta = counter.delta +  $2;`, nameMetric, delta)
 		if err != nil {
@@ -87,30 +105,27 @@ func (c *PgStorage) SetDBMetric(typeMetric models.MetricType, nameMetric string,
 func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
 	ctx := context.Background()
 
-	tx, err := c.Client.DB.Begin()
+	tx, err := c.DB.Begin()
 	if err != nil {
 		return err
 	}
 	for _, v := range metrics {
 		switch v.MType {
 		case models.MetricGauge:
-			fmt.Println(v, *v.Value, "gauge")
 			_, err := tx.ExecContext(ctx,
 				"INSERT INTO gauge (name, value) VALUES ($1, $2) "+
 					" ON CONFLICT (name) DO UPDATE SET value = $2", v.ID, v.Value)
 			if err != nil {
-				fmt.Println(v, "gauge err", err)
+				c.logger.Error("Error SetBatchMetrics gauge:", zap.String("about ERR", err.Error()))
 				tx.Rollback()
-
 				return err
 			}
 		case models.MetricCounter:
-			fmt.Println(v, *v.Delta, "counter")
 			_, err := tx.ExecContext(ctx,
 				`INSERT INTO counter (name, delta) VALUES ($1, $2)
 						ON CONFLICT (name) DO UPDATE SET delta = counter.delta +  $2;`, v.ID, v.Delta)
 			if err != nil {
-				fmt.Println(v, "counter err", err)
+				c.logger.Error("Error SetBatchMetrics counter:", zap.String("about ERR", err.Error()))
 				tx.Rollback()
 				return err
 			}
@@ -129,7 +144,7 @@ func (c *PgStorage) GetDBMetrics(typeMetric models.MetricType) interface{} {
 	}
 	switch typeMetric {
 	case models.MetricGauge:
-		rows, err := c.Client.DB.QueryContext(context.Background(), ` SELECT name, value FROM gauge`)
+		rows, err := c.DB.QueryContext(context.Background(), ` SELECT name, value FROM gauge`)
 		if err != nil {
 			return nil
 		}
@@ -148,7 +163,7 @@ func (c *PgStorage) GetDBMetrics(typeMetric models.MetricType) interface{} {
 
 		return res
 	case models.MetricCounter:
-		rows, err := c.Client.DB.QueryContext(context.Background(), ` SELECT name, delta FROM counter`)
+		rows, err := c.DB.QueryContext(context.Background(), ` SELECT name, delta FROM counter`)
 		if err != nil {
 			return nil
 		}

@@ -4,7 +4,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
 )
 
 func GetHashSHA256Base64(data []byte, key string) string {
@@ -14,6 +13,5 @@ func GetHashSHA256Base64(data []byte, key string) string {
 	h.Write(data)
 	// вычисляем хеш
 	sEnc := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	fmt.Println(sEnc)
 	return sEnc
 }
