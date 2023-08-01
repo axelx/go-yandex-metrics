@@ -28,7 +28,7 @@ type ConfigAgent struct {
 }
 
 func (c *ConfigAgent) String() string {
-	return fmt.Sprintf("Client: , BaseURL: %s, ReportFrequency: %v, PollFrequency: %s, RetryIntervals: %v, FlagHashKey: %s, FlagRateLimit: %s",
+	return fmt.Sprintf("Client: , BaseURL: %s, ReportFrequency: %v, PollFrequency: %d, RetryIntervals: %v, FlagHashKey: %s, FlagRateLimit: %s",
 		c.BaseURL, c.ReportFrequency, c.PollFrequency, c.RetryIntervals, c.FlagHashKey, c.FlagRateLimit)
 }
 
