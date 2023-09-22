@@ -20,13 +20,6 @@ import (
 	"github.com/axelx/go-yandex-metrics/internal/mtemplate"
 	"github.com/axelx/go-yandex-metrics/internal/pg"
 	"github.com/axelx/go-yandex-metrics/internal/service"
-	"github.com/go-chi/chi/v5"
-	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
-	"io"
-	"net/http"
-	"strconv"
-	"strings"
 )
 
 type keeper interface {
