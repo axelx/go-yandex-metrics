@@ -3,10 +3,12 @@ package mos
 import (
 	"bufio"
 	"encoding/json"
-	"github.com/axelx/go-yandex-metrics/internal/models"
-	"go.uber.org/zap"
 	"log"
 	"os"
+
+	"go.uber.org/zap"
+
+	"github.com/axelx/go-yandex-metrics/internal/models"
 )
 
 type DataEncode struct {

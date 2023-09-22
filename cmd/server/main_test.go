@@ -3,17 +3,19 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/pg"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response, string) {

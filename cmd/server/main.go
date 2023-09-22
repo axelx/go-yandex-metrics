@@ -2,14 +2,16 @@ package main
 
 import (
 	"errors"
+	"net/http"
+
+	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
+
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/pg"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
-	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
-	"net/http"
 )
 
 var err = errors.New("")

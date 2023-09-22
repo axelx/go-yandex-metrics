@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"sync"
+
+	"go.uber.org/zap"
+
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/metrics"
 	"github.com/axelx/go-yandex-metrics/internal/models"
-	"go.uber.org/zap"
-	"sync"
 )
 
 func main() {

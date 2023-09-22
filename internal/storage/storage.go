@@ -3,12 +3,14 @@ package storage
 import (
 	"errors"
 	"fmt"
-	"github.com/axelx/go-yandex-metrics/internal/models"
-	"github.com/axelx/go-yandex-metrics/internal/mos"
-	"go.uber.org/zap"
 	"reflect"
 	"strconv"
 	"time"
+
+	"go.uber.org/zap"
+
+	"github.com/axelx/go-yandex-metrics/internal/models"
+	"github.com/axelx/go-yandex-metrics/internal/mos"
 )
 
 var (

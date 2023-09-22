@@ -3,11 +3,13 @@ package pg
 import (
 	"context"
 	"errors"
-	"github.com/axelx/go-yandex-metrics/internal/models"
+	"time"
+
 	_ "github.com/jackc/pgx/stdlib"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
-	"time"
+
+	"github.com/axelx/go-yandex-metrics/internal/models"
 )
 
 const (

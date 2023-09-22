@@ -5,17 +5,19 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"errors"
-	"github.com/axelx/go-yandex-metrics/internal/config"
-	"github.com/axelx/go-yandex-metrics/internal/hash"
-	"github.com/axelx/go-yandex-metrics/internal/models"
-	"github.com/axelx/go-yandex-metrics/internal/service"
-	"github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/mem"
-	"go.uber.org/zap"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
+	"go.uber.org/zap"
+
+	"github.com/axelx/go-yandex-metrics/internal/config"
+	"github.com/axelx/go-yandex-metrics/internal/hash"
+	"github.com/axelx/go-yandex-metrics/internal/models"
+	"github.com/axelx/go-yandex-metrics/internal/service"
 )
 
 type Metric struct {
