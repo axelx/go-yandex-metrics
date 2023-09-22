@@ -90,7 +90,8 @@ func (m *Metric) Poll() {
 
 	for {
 		runtime.ReadMemStats(me)
-		m.data = []models.Metrics{}
+		m.data = make([]models.Metrics, 0, 33)
+
 		m.data = append(m.data, models.Metrics{ID: "TotalMemory", MType: "gauge", Value: service.Float64ToPointerFloat64(float64(mGopsutil.Total))})
 		m.data = append(m.data, models.Metrics{ID: "FreeMemory", MType: "gauge", Value: service.Float64ToPointerFloat64(float64(mGopsutil.Free))})
 		m.data = append(m.data, models.Metrics{ID: "CPUutilization1", MType: "gauge", Value: service.Float64ToPointerFloat64(pcGopsutil[0])})
