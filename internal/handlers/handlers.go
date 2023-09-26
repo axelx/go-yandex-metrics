@@ -42,6 +42,7 @@ type handler struct {
 	HashKey    string
 }
 
+// handler.New создаем новый обработчик
 func New(k keeper, log *zap.Logger, db *sqlx.DB, NewDBStorage *pg.PgStorage, hashKey string) handler {
 	return handler{
 		memStorage: k,

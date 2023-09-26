@@ -1,3 +1,4 @@
+// Agent для сбора и отправки метрик на сервер
 package main
 
 import (
@@ -13,8 +14,10 @@ import (
 )
 
 func main() {
+	// conf — принимаем конфигурацию модуля.
 	conf := config.NewConfigAgent()
 
+	// lg — инициализируем уровень логера.
 	lg := logger.Initialize("info")
 	lg.Info("Running server", zap.String("config", conf.String()))
 

@@ -23,6 +23,7 @@ type PgStorage struct {
 	logger         *zap.Logger
 }
 
+// NewDBStorage создаём подключение к базе
 func NewDBStorage(log *zap.Logger) *PgStorage {
 	return &PgStorage{
 		logger:         log,
@@ -30,6 +31,7 @@ func NewDBStorage(log *zap.Logger) *PgStorage {
 	}
 }
 
+// CreateTable создаём таблицы базы если их нет.
 func (c *PgStorage) CreateTable() error {
 	_, err := c.DB.ExecContext(context.Background(),
 		` CREATE TABLE IF NOT EXISTS gauge (

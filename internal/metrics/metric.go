@@ -1,3 +1,4 @@
+// Модуль metrics собирает метрики системы в рантайме и отправляет их по установленному урлу
 package metrics
 
 import (
@@ -26,6 +27,7 @@ type Metric struct {
 	Logger *zap.Logger
 }
 
+// metrics.New новый экземпляр метрик с параметрами конфига и логированием
 func New(conf config.ConfigAgent, logger *zap.Logger) Metric {
 	return Metric{
 		data:   []models.Metrics{},
@@ -38,6 +40,7 @@ var (
 	ErrDialUp = errors.New("dial up connection")
 )
 
+// ReportBatch отправка группы метрик
 func (m *Metric) ReportBatch() {
 	for {
 
@@ -53,6 +56,8 @@ func (m *Metric) ReportBatch() {
 		time.Sleep(time.Duration(m.conf.ReportFrequency) * time.Second)
 	}
 }
+
+// Report помещаем метрики в канал jobs
 func (m *Metric) Report(jobs chan models.Metrics) {
 	for {
 		for _, metrics := range m.data {
@@ -63,12 +68,7 @@ func (m *Metric) Report(jobs chan models.Metrics) {
 	}
 }
 
-func (m *Metric) CreateJobs(jobs chan models.Metrics) {
-	for _, metrics := range m.data {
-		jobs <- metrics
-	}
-}
-
+// Poll опрос и сбор runtime метрик
 func (m *Metric) Poll() {
 	me := new(runtime.MemStats)
 
@@ -150,6 +150,8 @@ func sendRequestSliceMetrics(c config.ConfigAgent, metrics []models.Metrics, log
 	}
 	return nil
 }
+
+// SendRequestMetric отправка метрик по указанному в кофиге урлу
 func SendRequestMetric(c config.ConfigAgent, metric models.Metrics, log *zap.Logger) error {
 	metricsJSON, err := json.Marshal(metric)
 	if err != nil {

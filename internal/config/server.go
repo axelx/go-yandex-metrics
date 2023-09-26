@@ -17,11 +17,13 @@ type ConfigServer struct {
 	FlagHashKey         string
 }
 
+// String нужен для чтения всех параметров конфига
 func (c *ConfigServer) String() string {
 	return fmt.Sprintf("FlagRunAddr: %s, FlagLogLevel: %s, FlagStoreInternal: %v, FlagFileStoragePath: %s, FlagRestore: %v, FlagDatabaseDSN: %s, FlagHashKey: %s",
 		c.FlagRunAddr, c.FlagLogLevel, c.FlagStoreInternal, c.FlagFileStoragePath, c.FlagRestore, c.FlagDatabaseDSN, c.FlagHashKey)
 }
 
+// NewConfigServer создаём конфигурацию сервера для получения и сохранения метрик
 func NewConfigServer() *ConfigServer {
 	conf := ConfigServer{
 		FlagRunAddr:         "",

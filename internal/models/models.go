@@ -5,6 +5,7 @@ type MetricType string
 var MetricGauge MetricType = "gauge"
 var MetricCounter MetricType = "counter"
 
+// Metrics структура метрики. Нужна для отображения метрики в формате json
 type Metrics struct {
 	ID    string     `json:"id"`              // имя метрики
 	MType MetricType `json:"type"`            // параметр, принимающий значение gauge или counter

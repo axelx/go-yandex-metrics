@@ -59,6 +59,7 @@ func (c *ConfigAgent) String() string {
 //	return rt.next.RoundTrip(req)
 //}
 
+// NewConfigAgent создаём конфигурацию агента для сбора и отправки метрик
 func NewConfigAgent() ConfigAgent {
 
 	cf := ConfigAgentFlag{

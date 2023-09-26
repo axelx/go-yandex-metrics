@@ -175,6 +175,7 @@ func (m *MemStorage) toModelMetric() []models.Metrics {
 	return metrics
 }
 
+// RestoreFromFile восстановление метрик из файла
 func (m *MemStorage) RestoreFromFile() {
 	if !m.restore {
 		return
@@ -192,6 +193,7 @@ func (m *MemStorage) RestoreFromFile() {
 	}
 }
 
+// UpdateFile обновляем метрики в файле
 func (m *MemStorage) UpdateFile() {
 	if m.UpdateInterval == 0 {
 		return
