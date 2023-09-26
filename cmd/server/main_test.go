@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
-	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/pg"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
@@ -33,13 +32,12 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 }
 
 func TestGetMetric(t *testing.T) {
-	lg := logger.Initialize("info")
-	m := storage.New("", 300, false, lg)
+	m := storage.New("", 300, false)
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
-	NewDBStorage := pg.NewDBStorage(lg)
-	hd := handlers.New(&m, logger.Initialize("info"), NewDBStorage.DB, NewDBStorage, "")
+	NewDBStorage := pg.NewDBStorage()
+	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -60,13 +58,12 @@ func TestGetMetric(t *testing.T) {
 }
 
 func TestUpdatedMetric(t *testing.T) {
-	lg := logger.Initialize("info")
-	m := storage.New("", 300, false, lg)
+	m := storage.New("", 300, false)
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
 
-	NewDBStorage := pg.NewDBStorage(lg)
-	hd := handlers.New(&m, logger.Initialize("info"), NewDBStorage.DB, NewDBStorage, "")
+	NewDBStorage := pg.NewDBStorage()
+	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -111,15 +108,14 @@ func testJSONRequest(t *testing.T, ts *httptest.Server, method, path string, bod
 }
 
 func TestGetJsonMetric(t *testing.T) {
-	lg := logger.Initialize("info")
-	m := storage.New("", 300, false, lg)
+	m := storage.New("", 300, false)
 	g := 5.5
 	c := int64(5)
 	m.SetJSONGauge("HeapAlloc", &g)
 	m.SetJSONCounter("PollCount", &c)
 
-	NewDBStorage := pg.NewDBStorage(lg)
-	hd := handlers.New(&m, logger.Initialize("info"), NewDBStorage.DB, NewDBStorage, "")
+	NewDBStorage := pg.NewDBStorage()
+	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -153,15 +149,14 @@ func TestGetJsonMetric(t *testing.T) {
 }
 
 func TestJsonUpdatedMetric(t *testing.T) {
-	lg := logger.Initialize("info")
-	m := storage.New("", 300, false, lg)
+	m := storage.New("", 300, false)
 	g := 5.5
 	c := int64(5)
 	m.SetJSONGauge("HeapAlloc", &g)
 	m.SetJSONCounter("PollCount", &c)
 
-	NewDBStorage := pg.NewDBStorage(lg)
-	hd := handlers.New(&m, logger.Initialize("info"), NewDBStorage.DB, NewDBStorage, "")
+	NewDBStorage := pg.NewDBStorage()
+	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 

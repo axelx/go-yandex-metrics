@@ -190,7 +190,8 @@ func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte) error {
 	if c.FlagHashKey != "" {
 		req.Header.Set("HashSHA256", hash.GetHashSHA256Base64(metricsJSON, c.FlagHashKey))
 	}
-	_, err = c.Client.Do(req)
+	resp, err := c.Client.Do(req)
+	resp.Body.Close()
 
 	if err != nil {
 		logger.Log.Error("Error reporting metrics:",
