@@ -32,33 +32,6 @@ func (c *ConfigAgent) String() string {
 		c.BaseURL, c.ReportFrequency, c.PollFrequency, c.RetryIntervals, c.FlagHashKey, c.FlagRateLimit)
 }
 
-// ////// middleware
-//type LoggingRoundTripper struct {
-//	next http.RoundTripper
-//}
-//
-//func NewLoggingRoundTripper(next http.RoundTripper) *LoggingRoundTripper {
-//	return &LoggingRoundTripper{
-//		next: next,
-//	}
-//}
-//
-//func (rt *LoggingRoundTripper) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-//	defer func(begin time.Time) {
-//
-//		//bodyReq, _ := io.ReadAll(req.Body)
-//		//req.Body.Close()
-//		////todo как прочитть боди реквест ?
-//		//
-//		//bodyResp, _ := io.ReadAll(resp.Body)
-//		fmt.Printf("LoggingRoundTripper method=%s host=%s  bodyReq= status_code=%d  bodyResp= err=%v took=%s\n\n",
-//			req.Method, req.URL.Host, resp.StatusCode, err, time.Since(begin),
-//		)
-//	}(time.Now())
-//
-//	return rt.next.RoundTrip(req)
-//}
-
 // NewConfigAgent создаём конфигурацию агента для сбора и отправки метрик
 func NewConfigAgent() ConfigAgent {
 
@@ -72,7 +45,6 @@ func NewConfigAgent() ConfigAgent {
 	parseFlagsAgent(&cf)
 
 	var rt = http.DefaultTransport
-	//rt = NewLoggingRoundTripper(rt)
 
 	confDefault := ConfigAgent{
 		Client: &http.Client{

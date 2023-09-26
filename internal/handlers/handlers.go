@@ -36,17 +36,15 @@ type keeper interface {
 
 type handler struct {
 	memStorage keeper
-	Logger     *zap.Logger
 	DB         *sqlx.DB
 	DBPostgres *pg.PgStorage
 	HashKey    string
 }
 
 // handler.New создаем новый обработчик
-func New(k keeper, log *zap.Logger, db *sqlx.DB, NewDBStorage *pg.PgStorage, hashKey string) handler {
+func New(k keeper, db *sqlx.DB, NewDBStorage *pg.PgStorage, hashKey string) handler {
 	return handler{
 		memStorage: k,
-		Logger:     log,
 		DB:         db,
 		DBPostgres: NewDBStorage,
 		HashKey:    hashKey,
@@ -56,7 +54,7 @@ func New(k keeper, log *zap.Logger, db *sqlx.DB, NewDBStorage *pg.PgStorage, has
 func (h *handler) Router() chi.Router {
 
 	r := chi.NewRouter()
-	r.Use(logger.RequestLogger(h.Logger))
+	r.Use(logger.RequestLogger())
 
 	r.Post("/update/{typeM}/{nameM}/{valueM}", h.UpdatedMetric())
 	r.Get("/value/{typeM}/{nameM}", h.GetMetric())
@@ -75,7 +73,7 @@ func (h *handler) DBConnect() http.HandlerFunc {
 			res.WriteHeader(http.StatusOK)
 			_, err := res.Write([]byte(""))
 			if err != nil {
-				h.Logger.Error("Error res.Write(metricsJSON)",
+				logger.Log.Error("Error res.Write(metricsJSON)",
 					zap.String("about func", "DbConnect"),
 					zap.String("about ERR", err.Error()),
 				)
@@ -84,7 +82,7 @@ func (h *handler) DBConnect() http.HandlerFunc {
 			res.WriteHeader(http.StatusInternalServerError)
 			_, err := res.Write([]byte(""))
 			if err != nil {
-				h.Logger.Error("Error res.Write(metricsJSON)",
+				logger.Log.Error("Error res.Write(metricsJSON)",
 					zap.String("about func", "DbConnect"),
 					zap.String("about ERR", err.Error()),
 				)
@@ -158,7 +156,7 @@ func (h *handler) UpdatedMetric() http.HandlerFunc {
 
 		size, err := res.Write([]byte(valueM))
 		if err != nil {
-			h.Logger.Error("Error res.Write(metricsJSON)",
+			logger.Log.Error("Error res.Write(metricsJSON)",
 				zap.String("about func", "UpdatedMetric"),
 				zap.String("about ERR", err.Error()),
 			)
@@ -166,7 +164,7 @@ func (h *handler) UpdatedMetric() http.HandlerFunc {
 
 		res.WriteHeader(http.StatusOK)
 
-		h.Logger.Info("sending HTTP response UpdatedMetric",
+		logger.Log.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
@@ -193,7 +191,7 @@ func (h *handler) GetMetric() http.HandlerFunc {
 
 		size, err := res.Write([]byte(metric))
 		if err != nil {
-			h.Logger.Error("Error res.Write(metricsJSON)",
+			logger.Log.Error("Error res.Write(metricsJSON)",
 				zap.String("about func", "GetMetric"),
 				zap.String("about ERR", err.Error()),
 			)
@@ -201,7 +199,7 @@ func (h *handler) GetMetric() http.HandlerFunc {
 
 		res.WriteHeader(http.StatusOK)
 
-		h.Logger.Info("sending HTTP response UpdatedMetric",
+		logger.Log.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
@@ -211,11 +209,11 @@ func (h *handler) GetMetric() http.HandlerFunc {
 func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
-		h.Logger.Debug("decoding request")
+		logger.Log.Debug("decoding request")
 		var metrics models.Metrics
 		dec := json.NewDecoder(req.Body)
 		if err := dec.Decode(&metrics); err != nil {
-			h.Logger.Debug("cannot decode request JSON body", zap.Error(err))
+			logger.Log.Debug("cannot decode request JSON body", zap.Error(err))
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -241,7 +239,7 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 
 		metricsJSON, err := json.Marshal(metricStorage)
 		if err != nil {
-			h.Logger.Error("Error json.Marshal(metricStorage)",
+			logger.Log.Error("Error json.Marshal(metricStorage)",
 				zap.String("about func", "UpdatedJSONMetric"),
 				zap.String("about ERR", err.Error()),
 			)
@@ -250,13 +248,13 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 		res.WriteHeader(http.StatusOK)
 		size, err := res.Write(metricsJSON)
 		if err != nil {
-			h.Logger.Error("Error res.Write(metricsJSON)",
+			logger.Log.Error("Error res.Write(metricsJSON)",
 				zap.String("about func", "UpdatedJSONMetric"),
 				zap.String("about ERR", err.Error()),
 			)
 		}
 
-		h.Logger.Info("sending HTTP response UpdatedMetric",
+		logger.Log.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
@@ -269,7 +267,7 @@ func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 
 		dec := json.NewDecoder(req.Body)
 		if err := dec.Decode(&metrics); err != nil {
-			h.Logger.Debug("cannot decode request JSON body", zap.Error(err))
+			logger.Log.Debug("cannot decode request JSON body", zap.Error(err))
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -277,7 +275,7 @@ func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 		if h.HashKey != "" {
 			hashHeader := req.Header.Get("HashSHA256")
 			metricsJSON, _ := json.Marshal(metrics)
-			if !h.checkHash(h.HashKey, hashHeader, metricsJSON, h.Logger) {
+			if !h.checkHash(h.HashKey, hashHeader, metricsJSON) {
 				http.Error(res, "StatusNotFound", http.StatusNotFound)
 				return
 			}
@@ -301,7 +299,7 @@ func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 		res.WriteHeader(http.StatusOK)
 		res.Write([]byte("{}"))
 
-		h.Logger.Info("sending HTTP response UpdatedMetric",
+		logger.Log.Info("sending HTTP response UpdatedMetric",
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
 	}
@@ -313,7 +311,7 @@ func (h *handler) GetJSONMetric() http.HandlerFunc {
 		var metrics models.Metrics
 		dec := json.NewDecoder(req.Body)
 		if err := dec.Decode(&metrics); err != nil {
-			h.Logger.Debug("cannot decode request JSON body", zap.Error(err))
+			logger.Log.Debug("cannot decode request JSON body", zap.Error(err))
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -331,7 +329,7 @@ func (h *handler) GetJSONMetric() http.HandlerFunc {
 
 		metricsJSON, err := json.Marshal(metric)
 		if err != nil {
-			h.Logger.Error("Error json marshal metrics:",
+			logger.Log.Error("Error json marshal metrics:",
 				zap.String("about func", "GetJSONMetric"),
 				zap.String("about ERR", err.Error()),
 			)
@@ -340,7 +338,7 @@ func (h *handler) GetJSONMetric() http.HandlerFunc {
 		res.WriteHeader(http.StatusOK)
 		size, _ := res.Write(metricsJSON)
 
-		h.Logger.Info("sending HTTP response UpdatedMetric",
+		logger.Log.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(size)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 		)
@@ -363,7 +361,7 @@ func (h *handler) GetAllMetrics() http.HandlerFunc {
 		})
 		tmplSize := len(buf.Bytes())
 
-		h.Logger.Info("sending HTTP response UpdatedMetric",
+		logger.Log.Info("sending HTTP response UpdatedMetric",
 			zap.String("size", strconv.Itoa(tmplSize)),
 			zap.String("status", strconv.Itoa(http.StatusOK)),
 			zap.String("about", "GetAllMetrics"),
@@ -424,10 +422,10 @@ func (h *handler) getMetrics(m keeper, MType models.MetricType, DB *sqlx.DB, DBP
 	}
 }
 
-func (h *handler) checkHash(key, hashHeader string, data []byte, log *zap.Logger) bool {
+func (h *handler) checkHash(key, hashHeader string, data []byte) bool {
 	ha := hash.GetHashSHA256Base64(data, key)
 
-	log.Info("checkHash",
+	logger.Log.Info("checkHash",
 		zap.String("hashHeader", hashHeader),
 		zap.String("calculated hash", ha),
 		zap.String("key", key),

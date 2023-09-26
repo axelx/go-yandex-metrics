@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 
+	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 )
 
@@ -20,13 +21,11 @@ type PgStorage struct {
 	DB             *sqlx.DB
 	maxConnections int
 	RetryIntervals []time.Duration
-	logger         *zap.Logger
 }
 
 // NewDBStorage создаём подключение к базе
-func NewDBStorage(log *zap.Logger) *PgStorage {
+func NewDBStorage() *PgStorage {
 	return &PgStorage{
-		logger:         log,
 		RetryIntervals: []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
 	}
 }
@@ -58,7 +57,7 @@ func (c *PgStorage) GetDBMetric(typeMetric models.MetricType, nameMetric string)
 		var value float64
 		err = row.Scan(&value)
 		if err != nil {
-			c.logger.Error("Error GetDBMetricс gauge:", zap.String("about ERR", err.Error()))
+			logger.Log.Error("Error GetDBMetricс gauge:", zap.String("about ERR", err.Error()))
 			return mt, err
 		}
 
@@ -70,7 +69,7 @@ func (c *PgStorage) GetDBMetric(typeMetric models.MetricType, nameMetric string)
 		var delta int64
 		err = row.Scan(&delta)
 		if err != nil {
-			c.logger.Error("Error GetDBMetric сounter", zap.String("about ERR", err.Error()))
+			logger.Log.Error("Error GetDBMetric сounter", zap.String("about ERR", err.Error()))
 			return mt, err
 		}
 		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Delta: &delta}
@@ -120,7 +119,7 @@ func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
 				"INSERT INTO gauge (name, value) VALUES ($1, $2) "+
 					" ON CONFLICT (name) DO UPDATE SET value = $2", v.ID, v.Value)
 			if err != nil {
-				c.logger.Error("Error SetBatchMetrics gauge:", zap.String("about ERR", err.Error()))
+				logger.Log.Error("Error SetBatchMetrics gauge:", zap.String("about ERR", err.Error()))
 				tx.Rollback()
 				return err
 			}
@@ -129,7 +128,7 @@ func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
 				`INSERT INTO counter (name, delta) VALUES ($1, $2)
 						ON CONFLICT (name) DO UPDATE SET delta = counter.delta +  $2;`, v.ID, v.Delta)
 			if err != nil {
-				c.logger.Error("Error SetBatchMetrics counter:", zap.String("about ERR", err.Error()))
+				logger.Log.Error("Error SetBatchMetrics counter:", zap.String("about ERR", err.Error()))
 				tx.Rollback()
 				return err
 			}

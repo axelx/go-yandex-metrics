@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -9,6 +10,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/mos"
 )
@@ -24,17 +26,15 @@ type MemStorage struct {
 	fileName       string
 	UpdateInterval int
 	restore        bool
-	logger         *zap.Logger
 }
 
-func New(filename string, updateInterval int, restoreFromFile bool, log *zap.Logger) MemStorage {
+func New(filename string, updateInterval int, restoreFromFile bool) MemStorage {
 	return MemStorage{
 		gauge:          map[string]float64{},
 		counter:        map[string]int64{},
 		fileName:       filename,
 		UpdateInterval: updateInterval,
 		restore:        restoreFromFile,
-		logger:         log,
 	}
 }
 
@@ -151,7 +151,7 @@ func dataUpdateOrAdd(sm []models.Metrics, metric models.Metrics) []models.Metric
 }
 
 func (m *MemStorage) ReadFile() []models.Metrics {
-	return mos.ReadAllFile(m.fileName, m.logger)
+	return mos.ReadAllFile(m.fileName)
 }
 func (m *MemStorage) SaveMetricToFile() error {
 	if m.fileName == "" {
@@ -189,19 +189,23 @@ func (m *MemStorage) RestoreFromFile() {
 		}
 
 		s := fmt.Sprintf("load metrics: %s, %s, %f, %d", metric.MType, metric.ID, *metric.Value, *metric.Delta)
-		m.logger.Info("load metrics ", zap.String("info", s))
+		logger.Log.Info("load metrics ", zap.String("info", s))
 	}
 }
 
 // UpdateFile обновляем метрики в файле
-func (m *MemStorage) UpdateFile() {
+func (m *MemStorage) UpdateFile(ctx context.Context) {
 	if m.UpdateInterval == 0 {
 		return
 	}
 	for {
-		m.SaveMetricToFile()
-		m.logger.Info("updateMemstorage from file ")
-
-		time.Sleep(time.Duration(m.UpdateInterval) * time.Second)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			m.SaveMetricToFile()
+			logger.Log.Info("updateMemstorage from file ")
+			time.Sleep(time.Duration(m.UpdateInterval) * time.Second)
+		}
 	}
 }

@@ -2,11 +2,12 @@
 package main
 
 import (
+	"context"
 	"errors"
-	"net/http"
-
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
+	"net/http"
 
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
@@ -20,16 +21,24 @@ var err = errors.New("")
 func main() {
 
 	conf := config.NewConfigServer()
-	lg := logger.Initialize("info")
-	lg.Info("Running server", zap.String("config", conf.String()))
-	metricStorage := storage.New(conf.FlagFileStoragePath, conf.FlagStoreInternal, conf.FlagRestore, lg)
+	if err := logger.Initialize(conf.FlagLogLevel); err != nil {
+		fmt.Println(err)
+	}
+	logger.Log.Info("Running server", zap.String("address", conf.String()))
 
-	NewDBStorage := pg.NewDBStorage(lg)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	metricStorage := storage.New(conf.FlagFileStoragePath, conf.FlagStoreInternal, conf.FlagRestore)
+
+	NewDBStorage := pg.NewDBStorage()
 
 	//подключаемся к базе
 	NewDBStorage.DB, err = sqlx.Connect("pgx", conf.FlagDatabaseDSN)
 	if err != nil {
-		lg.Error("Error not connect to db", zap.String("about ERR", err.Error()))
+		logger.Log.Error("Error not connect to db", zap.String("about ERR", err.Error()))
+	} else {
+		cancel()
 	}
 	NewDBStorage.DB.SetMaxOpenConns(10)
 
@@ -37,7 +46,6 @@ func main() {
 		NewDBStorage.DB.Close()
 	}()
 
-	// создаем таблицы при старте сервера
 	if NewDBStorage.DB != nil {
 		NewDBStorage.CreateTable()
 	}
@@ -46,9 +54,9 @@ func main() {
 		metricStorage.RestoreFromFile()
 	}
 
-	go metricStorage.UpdateFile()
+	go metricStorage.UpdateFile(ctx)
 
-	hd := handlers.New(&metricStorage, lg, NewDBStorage.DB, NewDBStorage, conf.FlagHashKey)
+	hd := handlers.New(&metricStorage, NewDBStorage.DB, NewDBStorage, conf.FlagHashKey)
 	if err := http.ListenAndServe(conf.FlagRunAddr, hd.Router()); err != nil {
 		panic(err)
 	}

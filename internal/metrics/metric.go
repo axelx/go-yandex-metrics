@@ -17,22 +17,21 @@ import (
 
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/hash"
+	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/service"
 )
 
 type Metric struct {
-	data   []models.Metrics
-	conf   config.ConfigAgent
-	Logger *zap.Logger
+	data []models.Metrics
+	conf config.ConfigAgent
 }
 
 // metrics.New новый экземпляр метрик с параметрами конфига и логированием
-func New(conf config.ConfigAgent, logger *zap.Logger) Metric {
+func New(conf config.ConfigAgent) Metric {
 	return Metric{
-		data:   []models.Metrics{},
-		conf:   conf,
-		Logger: logger,
+		data: []models.Metrics{},
+		conf: conf,
 	}
 }
 
@@ -45,7 +44,7 @@ func (m *Metric) ReportBatch() {
 	for {
 
 		for _, interval := range m.conf.RetryIntervals {
-			err := sendRequestSliceMetrics(m.conf, m.data, m.Logger)
+			err := sendRequestSliceMetrics(m.conf, m.data)
 			if err == nil {
 				break
 			}
@@ -74,14 +73,14 @@ func (m *Metric) Poll() {
 
 	mGopsutil, err := mem.VirtualMemory()
 	if err != nil {
-		m.Logger.Error("Error Poll",
+		logger.Log.Error("Error Poll",
 			zap.String("about func", "mGopsutil"),
 			zap.String("about ERR", err.Error()),
 		)
 	}
 	pcGopsutil, err := cpu.Percent(time.Duration(m.conf.PollFrequency)*time.Second, true)
 	if err != nil {
-		m.Logger.Error("Erro Poll",
+		logger.Log.Error("Erro Poll",
 			zap.String("about func", "pcGopsutil"),
 			zap.String("about ERR", err.Error()),
 		)
@@ -138,39 +137,39 @@ func (m *Metric) Poll() {
 	}
 }
 
-func sendRequestSliceMetrics(c config.ConfigAgent, metrics []models.Metrics, log *zap.Logger) error {
+func sendRequestSliceMetrics(c config.ConfigAgent, metrics []models.Metrics) error {
 	metricsJSON, err := json.Marshal(metrics)
 	if err != nil {
 		return err
 	}
-	err = sendRequest("updates/", c, metricsJSON, log)
+	err = sendRequest("updates/", c, metricsJSON)
 	if err != nil {
-		log.Error("Error sendRequest", zap.String("about ERR", err.Error()))
+		logger.Log.Error("Error sendRequest", zap.String("about ERR", err.Error()))
 		return err
 	}
 	return nil
 }
 
 // SendRequestMetric отправка метрик по указанному в кофиге урлу
-func SendRequestMetric(c config.ConfigAgent, metric models.Metrics, log *zap.Logger) error {
+func SendRequestMetric(c config.ConfigAgent, metric models.Metrics) error {
 	metricsJSON, err := json.Marshal(metric)
 	if err != nil {
-		log.Error("Error SendRequestMetric", zap.String("about ERR", err.Error()))
+		logger.Log.Error("Error SendRequestMetric", zap.String("about ERR", err.Error()))
 		return err
 	}
-	err = sendRequest("update/", c, metricsJSON, log)
+	err = sendRequest("update/", c, metricsJSON)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte, log *zap.Logger) error {
+func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte) error {
 	buf := bytes.NewBuffer(nil)
 	zb := gzip.NewWriter(buf)
 	_, err := zb.Write([]byte(metricsJSON))
 	if err != nil {
-		log.Error("Error zb.Write([]byte(metricsJSON))",
+		logger.Log.Error("Error zb.Write([]byte(metricsJSON))",
 			zap.String("about func", "sendRequest"),
 			zap.String("about ERR", err.Error()),
 		)
@@ -180,7 +179,7 @@ func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte, log *zap.
 
 	req, err := http.NewRequest("POST", c.BaseURL+url, buf)
 	if err != nil {
-		log.Error("Error create request",
+		logger.Log.Error("Error create request",
 			zap.String("about func", "sendRequest"),
 			zap.String("about ERR", err.Error()),
 		)
@@ -191,18 +190,15 @@ func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte, log *zap.
 	if c.FlagHashKey != "" {
 		req.Header.Set("HashSHA256", hash.GetHashSHA256Base64(metricsJSON, c.FlagHashKey))
 	}
-	resp, err := c.Client.Do(req)
+	_, err = c.Client.Do(req)
 
 	if err != nil {
-		log.Error("Error reporting metrics:",
+		logger.Log.Error("Error reporting metrics:",
 			zap.String("about func", "sendRequest"),
 			zap.String("about metricJSON", string(metricsJSON)),
 			zap.String("about ERR", err.Error()),
 		)
 		return ErrDialUp
-	} else {
-		resp.Body.Close()
-		log.Info("Metrics sent successfully! Send body: %s, Response body: " + string(metricsJSON)) //zap.String("about func", "sendRequest"),
 	}
 	return nil
 }

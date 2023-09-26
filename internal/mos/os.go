@@ -8,6 +8,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 )
 
@@ -73,13 +74,13 @@ func SaveMetricsToFile(fileName string, metrics []models.Metrics) error {
 	}
 	return nil
 }
-func ReadAllFile(fileName string, log *zap.Logger) []models.Metrics {
+func ReadAllFile(fileName string) []models.Metrics {
 	if fileName == "" {
 		return nil
 	}
 	file, err := os.Open(fileName)
 	if err != nil {
-		log.Error("Error mos.ReadAllFile", zap.String("about ERR", err.Error()))
+		logger.Log.Error("Error mos.ReadAllFile", zap.String("about ERR", err.Error()))
 		return nil
 	}
 	defer file.Close()
@@ -93,7 +94,7 @@ func ReadAllFile(fileName string, log *zap.Logger) []models.Metrics {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Error("Error mos.ReadAllFile  ", zap.String("about ERR: scanner.Err; ", err.Error()))
+		logger.Log.Error("Error mos.ReadAllFile  ", zap.String("about ERR: scanner.Err; ", err.Error()))
 	}
 	return sm
 }

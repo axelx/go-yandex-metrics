@@ -17,11 +17,12 @@ func main() {
 	// conf — принимаем конфигурацию модуля.
 	conf := config.NewConfigAgent()
 
-	// lg — инициализируем уровень логера.
-	lg := logger.Initialize("info")
-	lg.Info("Running server", zap.String("config", conf.String()))
+	if err := logger.Initialize("info"); err != nil {
+		fmt.Println(err)
+	}
+	logger.Log.Info("Running server", zap.String("config", conf.String()))
 
-	metric := metrics.New(conf, lg)
+	metric := metrics.New(conf)
 
 	var wg sync.WaitGroup
 	//производим опрос/обновление метрик
@@ -41,22 +42,21 @@ func main() {
 
 	jobs := make(chan models.Metrics, 30)
 
-	//добавляем метрики для отправки в канал
 	go func() {
 		metric.Report(jobs)
 	}()
 
 	// создаем воркеры которые будут отправлять метрики из канала jobs
 	for w := 1; w <= conf.FlagRateLimit; w++ {
-		go worker(w, jobs, conf, lg)
+		go worker(w, jobs, conf)
 	}
 	wg.Wait()
 }
 
-func worker(id int, jobs <-chan models.Metrics, c config.ConfigAgent, log *zap.Logger) {
+func worker(id int, jobs <-chan models.Metrics, c config.ConfigAgent) {
 	for job := range jobs {
 		str := fmt.Sprintf("рабочий %d, Start запущена задача", id)
-		log.Info("Worker", zap.String("worker", str))
-		metrics.SendRequestMetric(c, job, log)
+		logger.Log.Info("Worker", zap.String("worker", str))
+		metrics.SendRequestMetric(c, job)
 	}
 }

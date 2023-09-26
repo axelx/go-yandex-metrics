@@ -1,41 +1,38 @@
 package logger
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
 	"go.uber.org/zap"
 )
 
-// Initialize инициализирует логер с необходимым уровнем логирования.
-func Initialize(level string) *zap.Logger {
-	// преобразуем текстовый уровень логирования в zap.AtomicLevel
+var Log *zap.Logger = zap.NewNop()
+
+// Initialize инициализирует синглтон логера с необходимым уровнем логирования.
+func Initialize(level string) error {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
-		fmt.Println("Ошибка инициализации уровня логирования")
+		return err
 	}
-	// создаём новую конфигурацию логера
 	cfg := zap.NewProductionConfig()
-	// устанавливаем уровень
 	cfg.Level = lvl
-	// создаём логер на основе конфигурации
 	zl, err := cfg.Build()
 	if err != nil {
-		fmt.Println("Ошибка инициализации лога")
+		return err
 	}
-	return zl
+	Log = zl
+	return nil
 }
 
 // RequestLogger — middleware-логер для входящих HTTP-запросов.
-func RequestLogger(log *zap.Logger) func(http.Handler) http.Handler {
+func RequestLogger() func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			h.ServeHTTP(w, r)
 			duration := time.Since(start)
-
-			log.Info("got incoming HTTP request",
+			Log.Info("got incoming HTTP request (middleware)",
 				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
 				zap.String("duration", duration.String()),
