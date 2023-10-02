@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
 	"net/http"
 
 	"github.com/axelx/go-yandex-metrics/internal/config"
@@ -24,7 +23,7 @@ func main() {
 	if err := logger.Initialize(conf.FlagLogLevel); err != nil {
 		fmt.Println(err)
 	}
-	logger.Log.Info("Running server", zap.String("address", conf.String()))
+	logger.Log.Info("Running server", "address"+conf.String())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -36,7 +35,7 @@ func main() {
 	//подключаемся к базе
 	NewDBStorage.DB, err = sqlx.Connect("pgx", conf.FlagDatabaseDSN)
 	if err != nil {
-		logger.Log.Error("Error not connect to db", zap.String("about ERR", err.Error()))
+		logger.Log.Error("Error not connect to db", "about ERR"+err.Error())
 	} else {
 		cancel()
 	}

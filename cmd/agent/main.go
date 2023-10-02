@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"go.uber.org/zap"
-
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/metrics"
@@ -20,7 +18,7 @@ func main() {
 	if err := logger.Initialize("info"); err != nil {
 		fmt.Println(err)
 	}
-	logger.Log.Info("Running server", zap.String("config", conf.String()))
+	logger.Log.Info("Running server", "config"+conf.String())
 
 	metric := metrics.New(conf)
 
@@ -56,7 +54,7 @@ func main() {
 func worker(id int, jobs <-chan models.Metrics, c config.ConfigAgent) {
 	for job := range jobs {
 		str := fmt.Sprintf("рабочий %d, Start запущена задача", id)
-		logger.Log.Info("Worker", zap.String("worker", str))
+		logger.Log.Info("Worker", "worker"+str)
 		metrics.SendRequestMetric(c, job)
 	}
 }

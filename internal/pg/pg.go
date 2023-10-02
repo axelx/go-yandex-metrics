@@ -7,7 +7,6 @@ import (
 
 	_ "github.com/jackc/pgx/stdlib"
 	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
 
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
@@ -57,7 +56,7 @@ func (c *PgStorage) GetDBMetric(typeMetric models.MetricType, nameMetric string)
 		var value float64
 		err = row.Scan(&value)
 		if err != nil {
-			logger.Log.Error("Error GetDBMetricс gauge:", zap.String("about ERR", err.Error()))
+			logger.Log.Error("Error GetDBMetricс gauge:", "about ERR"+err.Error())
 			return mt, err
 		}
 
@@ -69,7 +68,7 @@ func (c *PgStorage) GetDBMetric(typeMetric models.MetricType, nameMetric string)
 		var delta int64
 		err = row.Scan(&delta)
 		if err != nil {
-			logger.Log.Error("Error GetDBMetric сounter", zap.String("about ERR", err.Error()))
+			logger.Log.Error("Error GetDBMetric сounter", "about ERR"+err.Error())
 			return mt, err
 		}
 		mt = models.Metrics{MType: typeMetric, ID: nameMetric, Delta: &delta}
@@ -119,7 +118,7 @@ func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
 				"INSERT INTO gauge (name, value) VALUES ($1, $2) "+
 					" ON CONFLICT (name) DO UPDATE SET value = $2", v.ID, v.Value)
 			if err != nil {
-				logger.Log.Error("Error SetBatchMetrics gauge:", zap.String("about ERR", err.Error()))
+				logger.Log.Error("Error SetBatchMetrics gauge:", "about ERR"+err.Error())
 				tx.Rollback()
 				return err
 			}
@@ -128,7 +127,7 @@ func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {
 				`INSERT INTO counter (name, delta) VALUES ($1, $2)
 						ON CONFLICT (name) DO UPDATE SET delta = counter.delta +  $2;`, v.ID, v.Delta)
 			if err != nil {
-				logger.Log.Error("Error SetBatchMetrics counter:", zap.String("about ERR", err.Error()))
+				logger.Log.Error("Error SetBatchMetrics counter:", "about ERR"+err.Error())
 				tx.Rollback()
 				return err
 			}

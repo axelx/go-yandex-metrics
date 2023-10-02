@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/mos"
@@ -189,7 +187,7 @@ func (m *MemStorage) RestoreFromFile() {
 		}
 
 		s := fmt.Sprintf("load metrics: %s, %s, %f, %d", metric.MType, metric.ID, *metric.Value, *metric.Delta)
-		logger.Log.Info("load metrics ", zap.String("info", s))
+		logger.Log.Info("load metrics ", "info"+s)
 	}
 }
 
@@ -204,7 +202,7 @@ func (m *MemStorage) UpdateFile(ctx context.Context) {
 			return
 		default:
 			m.SaveMetricToFile()
-			logger.Log.Info("updateMemstorage from file ")
+			logger.Log.Info("updateMemstorage from file ", "")
 			time.Sleep(time.Duration(m.UpdateInterval) * time.Second)
 		}
 	}

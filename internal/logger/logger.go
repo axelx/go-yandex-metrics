@@ -7,7 +7,30 @@ import (
 	"go.uber.org/zap"
 )
 
-var Log *zap.Logger = zap.NewNop()
+var Log = Logger{}
+
+type Logger struct {
+	Lg       *zap.Logger
+	Title    string
+	Comment  string
+	Comments []string
+}
+
+func (l *Logger) Info(t, c string) {
+	l.Lg.Info(t,
+		zap.String("info", c),
+	)
+}
+func (l *Logger) Error(t, c string) {
+	l.Lg.Error(t,
+		zap.String("error", c),
+	)
+}
+func (l *Logger) Debug(t, c string) {
+	l.Lg.Debug(t,
+		zap.String("debug", c),
+	)
+}
 
 // Initialize инициализирует синглтон логера с необходимым уровнем логирования.
 func Initialize(level string) error {
@@ -21,7 +44,7 @@ func Initialize(level string) error {
 	if err != nil {
 		return err
 	}
-	Log = zl
+	Log.Lg = zl
 	return nil
 }
 
@@ -32,7 +55,7 @@ func RequestLogger() func(http.Handler) http.Handler {
 			start := time.Now()
 			h.ServeHTTP(w, r)
 			duration := time.Since(start)
-			Log.Info("got incoming HTTP request (middleware)",
+			Log.Lg.Info("got incoming HTTP request (middleware)",
 				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
 				zap.String("duration", duration.String()),
