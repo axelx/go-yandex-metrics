@@ -1,8 +1,11 @@
 // staticlint анализатор кода
+// необходимо в папки анализатора создать билд анализатора go build
+// старт анализатора по всему проекту ./staticlint ../../...
 package main
 
 import (
 	"encoding/json"
+	"go/ast"
 	"os"
 
 	"github.com/Antonboom/errname/pkg/analyzer"
@@ -34,12 +37,12 @@ func main() {
 	}
 
 	mychecks := []*analysis.Analyzer{
-		//errcheckanalyzer.ErrCheckAnalyzer,
 		printf.Analyzer,
 		shadow.Analyzer,
 		structtag.Analyzer,
 		analyzerAnalyzer(),
 		ginkgolinterAnalyzer(),
+		osExitAnalyzer,
 	}
 	checks := make(map[string]bool)
 	for _, v := range cfg.Staticcheck {
@@ -64,4 +67,38 @@ func analyzerAnalyzer() *analysis.Analyzer {
 
 func ginkgolinterAnalyzer() *analysis.Analyzer {
 	return ginkgolinter.Analyzer
+}
+
+var osExitAnalyzer = &analysis.Analyzer{
+	Name:     "noOsExit",
+	Doc:      "Check for direct os.Exit calls in main function",
+	Run:      checkOsExit,
+	Requires: []*analysis.Analyzer{},
+}
+
+func checkOsExit(pass *analysis.Pass) (interface{}, error) {
+	for _, file := range pass.Files {
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Name.Name != "main" {
+				continue
+			}
+
+			for _, stmt := range fn.Body.List {
+				if callExpr, ok := stmt.(*ast.ExprStmt); ok {
+					if call, ok := callExpr.X.(*ast.CallExpr); ok {
+						if fun, ok := call.Fun.(*ast.SelectorExpr); ok {
+							if ident, ok := fun.X.(*ast.Ident); ok {
+								if ident.Name == "os" && fun.Sel.Name == "Exit" {
+									pass.Reportf(call.Pos(), "Avoid direct os.Exit calls in main function")
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil, nil
 }
