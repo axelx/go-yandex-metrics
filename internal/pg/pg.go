@@ -80,7 +80,6 @@ func (c *PgStorage) GetDBMetric(typeMetric models.MetricType, nameMetric string)
 
 func (c *PgStorage) SetDBMetric(typeMetric models.MetricType, nameMetric string, value *float64, delta *int64) error {
 
-	err := errors.New("не найдена метрика")
 	switch typeMetric {
 	case models.MetricGauge:
 		_, err := c.DB.ExecContext(context.Background(),
@@ -101,7 +100,7 @@ func (c *PgStorage) SetDBMetric(typeMetric models.MetricType, nameMetric string,
 
 		return nil
 	default:
-		return err
+		return errors.New("не найдена метрика")
 	}
 }
 func (c *PgStorage) SetBatchMetrics(metrics []models.Metrics) error {

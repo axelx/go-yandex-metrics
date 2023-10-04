@@ -5,8 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"net/http"
+
+	"github.com/jmoiron/sqlx"
 
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
@@ -14,8 +15,6 @@ import (
 	"github.com/axelx/go-yandex-metrics/internal/pg"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
 )
-
-var err = errors.New("")
 
 func main() {
 
@@ -33,6 +32,7 @@ func main() {
 	NewDBStorage := pg.NewDBStorage()
 
 	//подключаемся к базе
+	var err = errors.New("")
 	NewDBStorage.DB, err = sqlx.Connect("pgx", conf.FlagDatabaseDSN)
 	if err != nil {
 		logger.Log.Error("Error not connect to db", "about ERR"+err.Error())
