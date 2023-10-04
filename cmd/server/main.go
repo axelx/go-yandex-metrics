@@ -16,6 +16,8 @@ import (
 	"github.com/axelx/go-yandex-metrics/internal/storage"
 )
 
+var errDB = errors.New("")
+
 func main() {
 
 	conf := config.NewConfigServer()
@@ -32,10 +34,9 @@ func main() {
 	NewDBStorage := pg.NewDBStorage()
 
 	//подключаемся к базе
-	var err = errors.New("")
-	NewDBStorage.DB, err = sqlx.Connect("pgx", conf.FlagDatabaseDSN)
-	if err != nil {
-		logger.Log.Error("Error not connect to db", "about ERR"+err.Error())
+	NewDBStorage.DB, errDB = sqlx.Connect("pgx", conf.FlagDatabaseDSN)
+	if errDB != nil {
+		logger.Log.Error("Error not connect to db", "about ERR"+errDB.Error())
 	} else {
 		cancel()
 	}
