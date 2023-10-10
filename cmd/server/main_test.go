@@ -3,16 +3,20 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/axelx/go-yandex-metrics/internal/logger"
+	"github.com/axelx/go-yandex-metrics/internal/models"
+	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
-	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/pg"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
 )
@@ -32,6 +36,10 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 }
 
 func TestGetMetric(t *testing.T) {
+	if err := logger.Initialize("info"); err != nil {
+		fmt.Println(err)
+	}
+
 	m := storage.New("", 300, false)
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
@@ -58,6 +66,9 @@ func TestGetMetric(t *testing.T) {
 }
 
 func TestUpdatedMetric(t *testing.T) {
+	if err := logger.Initialize("info"); err != nil {
+		fmt.Println(err)
+	}
 	m := storage.New("", 300, false)
 	m.SetGauge("HeapAlloc", 5.5)
 	m.SetCounter("PollCount", 5)
@@ -108,6 +119,9 @@ func testJSONRequest(t *testing.T, ts *httptest.Server, method, path string, bod
 }
 
 func TestGetJsonMetric(t *testing.T) {
+	if err := logger.Initialize("info"); err != nil {
+		fmt.Println(err)
+	}
 	m := storage.New("", 300, false)
 	g := 5.5
 	c := int64(5)
@@ -149,6 +163,9 @@ func TestGetJsonMetric(t *testing.T) {
 }
 
 func TestJsonUpdatedMetric(t *testing.T) {
+	if err := logger.Initialize("info"); err != nil {
+		fmt.Println(err)
+	}
 	m := storage.New("", 300, false)
 	g := 5.5
 	c := int64(5)
@@ -186,4 +203,65 @@ func TestJsonUpdatedMetric(t *testing.T) {
 		assert.Equal(t, v.want.statusCode, resp.StatusCode)
 		assert.Equal(t, v.want.data, post)
 	}
+}
+
+func TestPing(t *testing.T) {
+	if err := logger.Initialize("info"); err != nil {
+		fmt.Println(err)
+	}
+	m := storage.New("", 300, false)
+	g := 5.5
+	c := int64(5)
+	m.SetJSONGauge("HeapAlloc", &g)
+	m.SetJSONCounter("PollCount", &c)
+
+	NewDBStorage := pg.NewDBStorage()
+	NewDBStorage.DB = connectDB()
+	if NewDBStorage.DB != nil {
+		NewDBStorage.CreateTable()
+	}
+	fmt.Println("NewDBStorage", NewDBStorage)
+	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "")
+	ts := httptest.NewServer(hd.Router())
+	defer ts.Close()
+
+	type want struct {
+		statusCode int
+		data       string
+	}
+	tests := []struct {
+		name string
+		args storage.MemStorage
+		want want
+		url  string
+		body string
+	}{
+		{
+			name: "first",
+			args: m,
+			want: want{statusCode: 200, data: ``},
+			url:  "/ping",
+			body: ``,
+		},
+	}
+
+	for _, v := range tests {
+		resp, get := testRequest(t, ts, "GET", v.url)
+		defer resp.Body.Close()
+		assert.Equal(t, v.want.statusCode, resp.StatusCode)
+		assert.Equal(t, v.want.data, get)
+	}
+}
+
+func connectDB() *sqlx.DB {
+	DB, errDB := sqlx.Connect("pgx", "postgres://user:password@localhost:5464/db-go-yandex-metrics")
+	if errDB != nil {
+		log.Fatal(errDB)
+	}
+	DB.SetMaxOpenConns(10)
+
+	defer func() {
+		DB.Close()
+	}()
+	return DB
 }
