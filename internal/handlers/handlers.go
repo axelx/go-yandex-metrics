@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -197,19 +196,22 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var metrics models.Metrics
 
-		var err = errors.New("")
 		if h.CryptoKey == "" {
 			dec := json.NewDecoder(req.Body)
-			err = dec.Decode(&metrics)
+			err := dec.Decode(&metrics)
+			if err != nil {
+				logger.Log.Error("cannot decode request JSON body", err.Error())
+				res.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		} else {
 			dataDecode := crypto.Decode(service.StreamToByte(req.Body), h.CryptoKey)
-			err = json.Unmarshal(dataDecode, &metrics)
-		}
-		if err != nil {
-			fmt.Println("UpdatedJSONMetric-error--", err)
-			logger.Log.Debug("cannot decode request JSON body", err.Error())
-			res.WriteHeader(http.StatusInternalServerError)
-			return
+			err := json.Unmarshal(dataDecode, &metrics)
+			if err != nil {
+				logger.Log.Error("Cannot decode request JSON body with crypto private key", err.Error())
+				res.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		}
 
 		var deltaDefault int64
@@ -219,7 +221,7 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 			return
 		}
 
-		err = h.setJSONorDBmetric(h.memStorage, metrics.MType, metrics.ID, metrics.Value, metrics.Delta, h.DB, h.DBPostgres)
+		err := h.setJSONorDBmetric(h.memStorage, metrics.MType, metrics.ID, metrics.Value, metrics.Delta, h.DB, h.DBPostgres)
 		if err != nil {
 			http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 			return
@@ -250,18 +252,22 @@ func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var metrics []models.Metrics
 
-		var err = errors.New("")
 		if h.CryptoKey == "" {
 			dec := json.NewDecoder(req.Body)
-			err = dec.Decode(&metrics)
+			err := dec.Decode(&metrics)
+			if err != nil {
+				logger.Log.Error("UpdatedJSONMetrics: Cannot decode request JSON body", err.Error())
+				res.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		} else {
 			dataDecode := crypto.Decode(service.StreamToByte(req.Body), h.CryptoKey)
-			err = json.Unmarshal(dataDecode, &metrics)
-		}
-		if err != nil {
-			logger.Log.Error("cannot decode request JSON body", err.Error())
-			res.WriteHeader(http.StatusInternalServerError)
-			return
+			err := json.Unmarshal(dataDecode, &metrics)
+			if err != nil {
+				logger.Log.Error("UpdatedJSONMetrics: Cannot decode request JSON body with crypto private key", err.Error())
+				res.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		}
 
 		if h.HashKey != "" {
@@ -278,7 +284,7 @@ func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 			return
 		}
 
-		err = h.DBPostgres.SetBatchMetrics(metrics)
+		err := h.DBPostgres.SetBatchMetrics(metrics)
 		if err != nil {
 			http.Error(res, fmt.Sprint(err), http.StatusBadRequest)
 			return

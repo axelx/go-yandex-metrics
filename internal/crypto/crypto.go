@@ -5,7 +5,8 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
+	"io"
+	"os"
 
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 )
@@ -13,11 +14,16 @@ import (
 // Encode кодирование слайса байт с помощью публичного rsa pem ключа
 func Encode(text []byte, fileLocation string) []byte {
 
-	// Читаем публичный ключ из файла
 	pubKeyLocation := fileLocation
-	pubKeyBytes, err := ioutil.ReadFile(pubKeyLocation)
+
+	file, err := os.Open(pubKeyLocation)
 	if err != nil {
-		logger.Log.Error("Crypto Encode", "Ошибка чтения файла с публичным ключом: "+err.Error())
+		logger.Log.Error("Crypto Encode", "Ошибка чтения файла приватного ключа: "+err.Error())
+	}
+
+	pubKeyBytes, err := io.ReadAll(file)
+	if err != nil {
+		logger.Log.Error("Crypto Encode", "io.ReadAll(file): "+err.Error())
 	}
 
 	// Разбираем публичный ключ
@@ -41,11 +47,16 @@ func Encode(text []byte, fileLocation string) []byte {
 }
 
 // Decode раскодирование слайса байт с помощью приватного rsa ключа
-func Decode(encodeText []byte, privateKeyFile string) []byte {
-	//privateKeyFile := "id_rsa_ya.pem"
-	privateKeyData, err := ioutil.ReadFile(privateKeyFile)
+func Decode(encodeText []byte, fileLocation string) []byte {
+
+	privateKeyFile := fileLocation
+	file, err := os.Open(privateKeyFile)
 	if err != nil {
 		logger.Log.Error("Crypto Decode", "Ошибка чтения файла приватного ключа: "+err.Error())
+	}
+	privateKeyData, err := io.ReadAll(file)
+	if err != nil {
+		logger.Log.Error("Crypto Decode", "io.ReadAll(file) "+err.Error())
 	}
 
 	// Декодирование PEM блока приватного ключа
