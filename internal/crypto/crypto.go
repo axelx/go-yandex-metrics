@@ -12,7 +12,7 @@ import (
 )
 
 // Encode кодирование слайса байт с помощью публичного rsa pem ключа
-func Encode(text []byte, fileLocation string) []byte {
+func Encode(text []byte, fileLocation string) ([]byte, error) {
 
 	pubKeyLocation := fileLocation
 
@@ -30,6 +30,7 @@ func Encode(text []byte, fileLocation string) []byte {
 	block, _ := pem.Decode(pubKeyBytes)
 	if block == nil {
 		logger.Log.Error("Crypto Encode", "pem.Decode(pubKeyBytes): "+err.Error())
+		return nil, err
 	}
 
 	pubKey, err := x509.ParsePKCS1PublicKey(block.Bytes)
@@ -43,11 +44,11 @@ func Encode(text []byte, fileLocation string) []byte {
 	if err != nil {
 		logger.Log.Error("Crypto Encode", "Ошибка шифрования сообщения: "+err.Error())
 	}
-	return ciphertext
+	return ciphertext, nil
 }
 
 // Decode раскодирование слайса байт с помощью приватного rsa ключа
-func Decode(encodeText []byte, fileLocation string) []byte {
+func Decode(encodeText []byte, fileLocation string) ([]byte, error) {
 
 	privateKeyFile := fileLocation
 	file, err := os.Open(privateKeyFile)
@@ -63,6 +64,7 @@ func Decode(encodeText []byte, fileLocation string) []byte {
 	block, _ := pem.Decode(privateKeyData)
 	if block == nil {
 		logger.Log.Error("Crypto Decode", "Ошибка декодирования PEM блока приватного ключа: "+err.Error())
+		return nil, err
 	}
 
 	// Парсинг приватного ключа RSA из DER формата
@@ -77,5 +79,5 @@ func Decode(encodeText []byte, fileLocation string) []byte {
 		logger.Log.Error("Crypto Decode", "Ошибка расшифровки:: "+err.Error())
 	}
 
-	return plaintext
+	return plaintext, nil
 }

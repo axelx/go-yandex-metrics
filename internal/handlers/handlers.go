@@ -205,8 +205,8 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 				return
 			}
 		} else {
-			dataDecode := crypto.Decode(service.StreamToByte(req.Body), h.CryptoKey)
-			err := json.Unmarshal(dataDecode, &metrics)
+			dataDecode, err := crypto.Decode(service.StreamToByte(req.Body), h.CryptoKey)
+			err = json.Unmarshal(dataDecode, &metrics)
 			if err != nil {
 				logger.Log.Error("Cannot decode request JSON body with crypto private key", err.Error())
 				res.WriteHeader(http.StatusInternalServerError)
@@ -261,8 +261,8 @@ func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 				return
 			}
 		} else {
-			dataDecode := crypto.Decode(service.StreamToByte(req.Body), h.CryptoKey)
-			err := json.Unmarshal(dataDecode, &metrics)
+			dataDecode, err := crypto.Decode(service.StreamToByte(req.Body), h.CryptoKey)
+			err = json.Unmarshal(dataDecode, &metrics)
 			if err != nil {
 				logger.Log.Error("UpdatedJSONMetrics: Cannot decode request JSON body with crypto private key", err.Error())
 				res.WriteHeader(http.StatusInternalServerError)

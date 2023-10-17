@@ -137,7 +137,10 @@ func sendRequestSliceMetrics(c config.ConfigAgent, metrics []models.Metrics) err
 		return err
 	}
 	if c.CryptoKey != "" {
-		metricsJSON = crypto.Encode(metricsJSON, c.CryptoKey)
+		metricsJSON, err = crypto.Encode(metricsJSON, c.CryptoKey)
+		if err != nil {
+			return err
+		}
 	}
 	err = sendRequest("updates/", c, metricsJSON)
 	if err != nil {
@@ -155,7 +158,10 @@ func SendRequestMetric(c config.ConfigAgent, metric models.Metrics) error {
 		return err
 	}
 	if c.CryptoKey != "" {
-		metricJSON = crypto.Encode(metricJSON, c.CryptoKey)
+		metricJSON, err = crypto.Encode(metricJSON, c.CryptoKey)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = sendRequest("update/", c, metricJSON)
