@@ -55,7 +55,7 @@ func main() {
 	}()
 
 	// создаем воркеры которые будут отправлять метрики из канала jobs
-	for w := 1; w <= conf.FlagRateLimit; w++ {
+	for w := 1; w <= conf.RateLimit; w++ {
 		go worker(w, jobs, conf)
 	}
 	wg.Wait()

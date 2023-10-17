@@ -10,11 +10,12 @@ import (
 )
 
 type ConfigAgentFlag struct {
-	FlagServerAddr      string
-	FlagReportFrequency int
-	FlagPollFrequency   int
-	FlagHashKey         string
-	FlagRateLimit       int
+	ServerAddr      string
+	ReportFrequency int
+	PollFrequency   int
+	HashKey         string
+	RateLimit       int
+	CryptoKey       string
 }
 
 type ConfigAgent struct {
@@ -23,24 +24,26 @@ type ConfigAgent struct {
 	ReportFrequency int
 	PollFrequency   int
 	RetryIntervals  []time.Duration
-	FlagHashKey     string
-	FlagRateLimit   int
+	HashKey         string
+	RateLimit       int
+	CryptoKey       string
 }
 
 func (c *ConfigAgent) String() string {
-	return fmt.Sprintf("Client: , BaseURL: %s, ReportFrequency: %v, PollFrequency: %d, RetryIntervals: %v, FlagHashKey: %s, FlagRateLimit: %d",
-		c.BaseURL, c.ReportFrequency, c.PollFrequency, c.RetryIntervals, c.FlagHashKey, c.FlagRateLimit)
+	return fmt.Sprintf("Client: , BaseURL: %s, ReportFrequency: %v, PollFrequency: %d, RetryIntervals: %v, RateLimit: %d, HashKey: %s, CryptoKey: %s",
+		c.BaseURL, c.ReportFrequency, c.PollFrequency, c.RetryIntervals, c.RateLimit, c.HashKey, c.CryptoKey)
 }
 
 // NewConfigAgent создаём конфигурацию агента для сбора и отправки метрик
 func NewConfigAgent() ConfigAgent {
 
 	cf := ConfigAgentFlag{
-		FlagServerAddr:      "",
-		FlagReportFrequency: 1,
-		FlagPollFrequency:   1,
-		FlagHashKey:         "",
-		FlagRateLimit:       1,
+		ServerAddr:      "",
+		ReportFrequency: 1,
+		PollFrequency:   1,
+		HashKey:         "",
+		RateLimit:       1,
+		CryptoKey:       "",
 	}
 	parseFlagsAgent(&cf)
 
@@ -54,55 +57,63 @@ func NewConfigAgent() ConfigAgent {
 		ReportFrequency: 10,
 		PollFrequency:   2,
 		RetryIntervals:  []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
-		FlagHashKey:     "",
-		FlagRateLimit:   1,
+		HashKey:         "",
+		RateLimit:       1,
+		CryptoKey:       "",
 	}
 
-	if cf.FlagServerAddr != "" {
-		confDefault.BaseURL = "http://" + cf.FlagServerAddr + "/"
+	if cf.ServerAddr != "" {
+		confDefault.BaseURL = "http://" + cf.ServerAddr + "/"
 	}
-	if cf.FlagReportFrequency != 0 {
-		confDefault.ReportFrequency = cf.FlagReportFrequency
+	if cf.ReportFrequency != 0 {
+		confDefault.ReportFrequency = cf.ReportFrequency
 	}
-	if cf.FlagPollFrequency != 0 {
-		confDefault.PollFrequency = cf.FlagPollFrequency
+	if cf.PollFrequency != 0 {
+		confDefault.PollFrequency = cf.PollFrequency
 	}
-	if cf.FlagHashKey != "" {
-		confDefault.FlagHashKey = cf.FlagHashKey
+	if cf.HashKey != "" {
+		confDefault.HashKey = cf.HashKey
 	}
-	if cf.FlagRateLimit != 0 {
-		confDefault.FlagRateLimit = cf.FlagRateLimit
+	if cf.RateLimit != 0 {
+		confDefault.RateLimit = cf.RateLimit
+	}
+	if cf.CryptoKey != "" {
+		confDefault.CryptoKey = cf.CryptoKey
 	}
 	return confDefault
 }
 
 func parseFlagsAgent(c *ConfigAgentFlag) {
-	flag.StringVar(&c.FlagServerAddr, "a", "localhost:8080", "address and port to run server")
-	flag.IntVar(&c.FlagReportFrequency, "r", 10, "report frequency to run server")
-	flag.IntVar(&c.FlagPollFrequency, "p", 2, "poll frequency")
-	flag.StringVar(&c.FlagHashKey, "k", "", "hash key")
-	flag.IntVar(&c.FlagRateLimit, "l", 1, "simultaneous outgoing requests to the server")
+	flag.StringVar(&c.ServerAddr, "a", "localhost:8080", "address and port to run server")
+	flag.IntVar(&c.ReportFrequency, "r", 10, "report frequency to run server")
+	flag.IntVar(&c.PollFrequency, "p", 2, "poll frequency")
+	flag.StringVar(&c.HashKey, "k", "", "hash key")
+	flag.IntVar(&c.RateLimit, "l", 1, "simultaneous outgoing requests to the server")
+	flag.StringVar(&c.CryptoKey, "crypto-key", "", "location public key")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
-		c.FlagServerAddr = envRunAddr
+		c.ServerAddr = envRunAddr
 	}
 	if envReportFrequency := os.Getenv("REPORT_INTERVAL"); envReportFrequency != "" {
 		if v, err := strconv.Atoi(envReportFrequency); err == nil {
-			c.FlagReportFrequency = v
+			c.ReportFrequency = v
 		}
 	}
 	if envPollFrequency := os.Getenv("POLL_INTERVAL"); envPollFrequency != "" {
 		if v, err := strconv.Atoi(envPollFrequency); err == nil {
-			c.FlagPollFrequency = v
+			c.PollFrequency = v
 		}
 	}
 	if envKey := os.Getenv("KEY"); envKey != "" {
-		c.FlagHashKey = envKey
+		c.HashKey = envKey
 	}
-	if envFlagRateLimit := os.Getenv("RATE_LIMIT"); envFlagRateLimit != "" {
-		if v, err := strconv.Atoi(envFlagRateLimit); err == nil {
-			c.FlagRateLimit = v
+	if envRateLimit := os.Getenv("RATE_LIMIT"); envRateLimit != "" {
+		if v, err := strconv.Atoi(envRateLimit); err == nil {
+			c.RateLimit = v
 		}
+	}
+	if envCryptoKey := os.Getenv("CRYPTO_KEY"); envCryptoKey != "" {
+		c.CryptoKey = envCryptoKey
 	}
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 
 	"github.com/axelx/go-yandex-metrics/internal/config"
+	"github.com/axelx/go-yandex-metrics/internal/crypto"
 	"github.com/axelx/go-yandex-metrics/internal/hash"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
@@ -135,6 +136,9 @@ func sendRequestSliceMetrics(c config.ConfigAgent, metrics []models.Metrics) err
 	if err != nil {
 		return err
 	}
+	if c.CryptoKey != "" {
+		metricsJSON = crypto.Encode(metricsJSON, c.CryptoKey)
+	}
 	err = sendRequest("updates/", c, metricsJSON)
 	if err != nil {
 		logger.Log.Error("Error sendRequest", "about err: "+err.Error())
@@ -145,12 +149,16 @@ func sendRequestSliceMetrics(c config.ConfigAgent, metrics []models.Metrics) err
 
 // SendRequestMetric отправка метрик по указанному в кофиге урлу
 func SendRequestMetric(c config.ConfigAgent, metric models.Metrics) error {
-	metricsJSON, err := json.Marshal(metric)
+	metricJSON, err := json.Marshal(metric)
 	if err != nil {
 		logger.Log.Error("Error SendRequestMetric", "about err: "+err.Error())
 		return err
 	}
-	err = sendRequest("update/", c, metricsJSON)
+	if c.CryptoKey != "" {
+		metricJSON = crypto.Encode(metricJSON, c.CryptoKey)
+	}
+
+	err = sendRequest("update/", c, metricJSON)
 	if err != nil {
 		return err
 	}
@@ -174,8 +182,8 @@ func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
-	if c.FlagHashKey != "" {
-		req.Header.Set("HashSHA256", hash.GetHashSHA256Base64(metricsJSON, c.FlagHashKey))
+	if c.HashKey != "" {
+		req.Header.Set("HashSHA256", hash.GetHashSHA256Base64(metricsJSON, c.HashKey))
 	}
 	resp, err := c.Client.Do(req)
 	resp.Body.Close()

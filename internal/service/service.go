@@ -1,7 +1,9 @@
 package service
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"strconv"
 )
 
@@ -27,4 +29,10 @@ func Int64ToPointerInt64(i int64) *int64 {
 
 func Float64ToPointerFloat64(f float64) *float64 {
 	return &f
+}
+
+func StreamToByte(stream io.Reader) []byte {
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(stream)
+	return buf.Bytes()
 }

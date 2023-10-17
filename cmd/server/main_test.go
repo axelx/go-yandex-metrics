@@ -45,7 +45,7 @@ func TestGetMetric(t *testing.T) {
 	m.SetCounter("PollCount", 5)
 
 	NewDBStorage := pg.NewDBStorage()
-	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "")
+	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "", "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -74,7 +74,7 @@ func TestUpdatedMetric(t *testing.T) {
 	m.SetCounter("PollCount", 5)
 
 	NewDBStorage := pg.NewDBStorage()
-	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "")
+	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "", "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -129,7 +129,7 @@ func TestGetJsonMetric(t *testing.T) {
 	m.SetJSONCounter("PollCount", &c)
 
 	NewDBStorage := pg.NewDBStorage()
-	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "")
+	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "", "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -173,7 +173,7 @@ func TestJsonUpdatedMetric(t *testing.T) {
 	m.SetJSONCounter("PollCount", &c)
 
 	NewDBStorage := pg.NewDBStorage()
-	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "")
+	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "", "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
@@ -221,7 +221,7 @@ func TestPing(t *testing.T) {
 		NewDBStorage.CreateTable()
 	}
 	fmt.Println("NewDBStorage", NewDBStorage)
-	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "")
+	hd := handlers.New(&m, NewDBStorage.DB, NewDBStorage, "", "")
 	ts := httptest.NewServer(hd.Router())
 	defer ts.Close()
 
