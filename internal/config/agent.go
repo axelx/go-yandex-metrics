@@ -1,12 +1,17 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/axelx/go-yandex-metrics/internal/logger"
 )
 
 type ConfigAgentFlag struct {
@@ -47,6 +52,8 @@ func NewConfigAgent() ConfigAgent {
 	}
 	parseFlagsAgent(&cf)
 
+	agentConfigDefaultValue(&cf)
+
 	var rt = http.DefaultTransport
 
 	confDefault := ConfigAgent{
@@ -83,14 +90,20 @@ func NewConfigAgent() ConfigAgent {
 	return confDefault
 }
 
+var configAgentJSON string
+
 func parseFlagsAgent(c *ConfigAgentFlag) {
-	flag.StringVar(&c.ServerAddr, "a", "localhost:8080", "address and port to run server")
-	flag.IntVar(&c.ReportFrequency, "r", 10, "report frequency to run server")
-	flag.IntVar(&c.PollFrequency, "p", 2, "poll frequency")
+	flag.StringVar(&c.ServerAddr, "a", "", "address and port to run server")
+	flag.IntVar(&c.ReportFrequency, "r", 0, "report frequency to run server")
+	flag.IntVar(&c.PollFrequency, "p", 0, "poll frequency")
 	flag.StringVar(&c.HashKey, "k", "", "hash key")
-	flag.IntVar(&c.RateLimit, "l", 1, "simultaneous outgoing requests to the server")
+	flag.IntVar(&c.RateLimit, "l", 0, "simultaneous outgoing requests to the server")
 	flag.StringVar(&c.CryptoKey, "crypto-key", "", "location public key")
+	flag.StringVar(&configAgentJSON, "c", "", "config json")
+	flag.StringVar(&configAgentJSON, "config", "", "config json")
 	flag.Parse()
+
+	fmt.Println("configAgentJSON", configAgentJSON)
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		c.ServerAddr = envRunAddr
@@ -115,5 +128,83 @@ func parseFlagsAgent(c *ConfigAgentFlag) {
 	}
 	if envCryptoKey := os.Getenv("CRYPTO_KEY"); envCryptoKey != "" {
 		c.CryptoKey = envCryptoKey
+	}
+	if envConfigJSON := os.Getenv("CONFIG"); envConfigJSON != "" {
+		configAgentJSON = envConfigJSON
+	}
+
+	parseConfigAgentJSON(configAgentJSON, c)
+}
+
+func parseConfigAgentJSON(configJSON string, c *ConfigAgentFlag) *ConfigAgentFlag {
+	if configJSON == "" {
+		return c
+	}
+
+	type ConfigAgentJSON struct {
+		RunAddr         string `json:"address"`
+		ReportFrequency string `json:"report_interval"`
+		PollFrequency   string `json:"poll_interval"`
+		CryptoKey       string `json:"crypto_key"`
+	}
+	f, err := os.Open(configJSON)
+	if err != nil {
+		return c
+	}
+	defer f.Close()
+
+	bs, err := io.ReadAll(f)
+	fmt.Println("io.ReadAll(f)", string(bs))
+
+	cs := ConfigAgentJSON{}
+	err = json.Unmarshal(bs, &cs)
+	if err != nil {
+		logger.Log.Error("config agent", "Ошибка Unmarshal"+err.Error())
+		return c
+	}
+
+	rf := strings.Split(cs.ReportFrequency, "s")
+	rfi, err := strconv.Atoi(rf[0])
+	if err != nil {
+		logger.Log.Error("config agent", "Ошибка конвертации  Atoi rf"+err.Error())
+		return c
+	}
+	pf := strings.Split(cs.PollFrequency, "s")
+	pfi, err := strconv.Atoi(pf[0])
+	if err != nil {
+		logger.Log.Error("config agent", "Ошибка конвертации  Atoi pf"+err.Error())
+		return c
+	}
+
+	fmt.Println("pfi)", rfi, pfi)
+
+	if c.ServerAddr == "" {
+		c.ServerAddr = cs.RunAddr
+	}
+	if c.ReportFrequency == 0 {
+		c.ReportFrequency = rfi
+	}
+	if c.PollFrequency == 0 {
+		c.PollFrequency = pfi
+	}
+	if c.CryptoKey == "" {
+		c.CryptoKey = cs.CryptoKey
+	}
+
+	return c
+}
+
+func agentConfigDefaultValue(c *ConfigAgentFlag) {
+	if c.ServerAddr == "" {
+		c.ServerAddr = "localhost:8080"
+	}
+	if c.ReportFrequency == 0 {
+		c.ReportFrequency = 10
+	}
+	if c.PollFrequency == 0 {
+		c.PollFrequency = 5
+	}
+	if c.RateLimit == 0 {
+		c.RateLimit = 1
 	}
 }
