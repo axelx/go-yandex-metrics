@@ -119,6 +119,10 @@ func parseConfigJSON(configServerJSON string, c *ConfigServer) *ConfigServer {
 	defer f.Close()
 
 	bs, err := io.ReadAll(f)
+	if err != nil {
+		logger.Log.Error("config server", "io.ReadAll: "+err.Error())
+		return c
+	}
 	cs := ConfigServerJSON{}
 	err = json.Unmarshal(bs, &cs)
 	if err != nil {
@@ -143,7 +147,7 @@ func parseConfigJSON(configServerJSON string, c *ConfigServer) *ConfigServer {
 	if c.FileStoragePath == "" {
 		c.FileStoragePath = cs.FileStoragePath
 	}
-	if c.Restore == false {
+	if !c.Restore {
 		c.Restore = cs.Restore
 	}
 	if c.DatabaseDSN == "" {
@@ -169,7 +173,7 @@ func serverConfigDefaultValue(c *ConfigServer) {
 	if c.LogLevel == "" {
 		c.LogLevel = "info"
 	}
-	if c.Restore == false {
+	if !c.Restore {
 		c.Restore = true
 	}
 }

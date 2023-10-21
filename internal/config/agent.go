@@ -154,12 +154,16 @@ func parseConfigAgentJSON(configJSON string, c *ConfigAgentFlag) *ConfigAgentFla
 	defer f.Close()
 
 	bs, err := io.ReadAll(f)
+	if err != nil {
+		logger.Log.Error("config agent", "io.ReadAll: "+err.Error())
+		return c
+	}
 	fmt.Println("io.ReadAll(f)", string(bs))
 
 	cs := ConfigAgentJSON{}
 	err = json.Unmarshal(bs, &cs)
 	if err != nil {
-		logger.Log.Error("config agent", "Ошибка Unmarshal"+err.Error())
+		logger.Log.Error("config agent", "Ошибка UnmarshalЖ"+err.Error())
 		return c
 	}
 
@@ -175,8 +179,6 @@ func parseConfigAgentJSON(configJSON string, c *ConfigAgentFlag) *ConfigAgentFla
 		logger.Log.Error("config agent", "Ошибка конвертации  Atoi pf"+err.Error())
 		return c
 	}
-
-	fmt.Println("pfi)", rfi, pfi)
 
 	if c.ServerAddr == "" {
 		c.ServerAddr = cs.RunAddr
