@@ -161,7 +161,6 @@ func parseRSAPublicKey(keyData []byte) (*rsa.PublicKey, error) {
 	}
 	pkey, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
-		panic(err)
 		logger.Log.Error("Crypto parseRSAPublicKey", "ParsePKIXPublicKey: "+err.Error())
 		return nil, err
 	}
