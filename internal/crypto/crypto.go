@@ -12,11 +12,8 @@ import (
 )
 
 // Encode кодирование слайса байт с помощью публичного rsa pem ключа
-func Encode(text []byte, fileLocation string) ([]byte, error) {
-
-	pubKeyLocation := fileLocation
-
-	file, err := os.Open(pubKeyLocation)
+func Encode(text []byte, fileLocationPublic string) ([]byte, error) {
+	file, err := os.Open(fileLocationPublic)
 	if err != nil {
 		logger.Log.Error("Crypto Encode", "Ошибка чтения файла приватного ключа: "+err.Error())
 	}
@@ -48,10 +45,8 @@ func Encode(text []byte, fileLocation string) ([]byte, error) {
 }
 
 // Decode раскодирование слайса байт с помощью приватного rsa ключа
-func Decode(encodeText []byte, fileLocation string) ([]byte, error) {
-
-	privateKeyFile := fileLocation
-	file, err := os.Open(privateKeyFile)
+func Decode(encodeText []byte, fileLocationPrivate string) ([]byte, error) {
+	file, err := os.Open(fileLocationPrivate)
 	if err != nil {
 		logger.Log.Error("Crypto Decode", "Ошибка чтения файла приватного ключа: "+err.Error())
 	}
