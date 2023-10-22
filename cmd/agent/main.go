@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -22,6 +23,9 @@ func main() {
 	fmt.Printf("Build date:= %s\n", buildDate)
 	fmt.Printf("Build commit:= %s\n", buildCommit)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// conf — принимаем конфигурацию модуля.
 	conf := config.NewConfigAgent()
 
@@ -35,24 +39,28 @@ func main() {
 	var wg sync.WaitGroup
 	//производим опрос/обновление метрик
 	wg.Add(1)
-	go func() {
+	go func(ctx context.Context) {
 		for {
-			metric.Poll()
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				metric.Poll()
+			}
 		}
-	}()
+	}(ctx)
 	wg.Add(1)
+
 	//производим отправку пачкой метрики
-	go func() {
-		for {
-			metric.ReportBatch()
-		}
-	}()
+	go func(ctx context.Context) {
+		metric.ReportBatch(ctx)
+	}(ctx)
 
 	jobs := make(chan models.Metrics, 30)
 
-	go func() {
-		metric.Report(jobs)
-	}()
+	go func(ctx context.Context) {
+		metric.Report(ctx, jobs)
+	}(ctx)
 
 	// создаем воркеры которые будут отправлять метрики из канала jobs
 	for w := 1; w <= conf.RateLimit; w++ {

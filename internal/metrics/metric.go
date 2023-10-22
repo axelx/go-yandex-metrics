@@ -4,6 +4,7 @@ package metrics
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"errors"
 	"math/rand"
@@ -40,16 +41,21 @@ var (
 )
 
 // ReportBatch отправка группы метрик
-func (m *Metric) ReportBatch() {
+func (m *Metric) ReportBatch(ctx context.Context) {
 	for {
 
 		for _, interval := range m.conf.RetryIntervals {
-			err := sendRequestSliceMetrics(m.conf, m.data)
-			if err == nil {
-				break
-			}
-			if errors.Is(err, ErrDialUp) {
-				time.Sleep(interval)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				err := sendRequestSliceMetrics(m.conf, m.data)
+				if err == nil {
+					break
+				}
+				if errors.Is(err, ErrDialUp) {
+					time.Sleep(interval)
+				}
 			}
 		}
 		time.Sleep(time.Duration(m.conf.ReportFrequency) * time.Second)
@@ -57,12 +63,16 @@ func (m *Metric) ReportBatch() {
 }
 
 // Report помещаем метрики в канал jobs
-func (m *Metric) Report(jobs chan models.Metrics) {
+func (m *Metric) Report(ctx context.Context, jobs chan models.Metrics) {
 	for {
-		for _, metrics := range m.data {
-			jobs <- metrics
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			for _, metrics := range m.data {
+				jobs <- metrics
+			}
 		}
-
 		time.Sleep(time.Duration(m.conf.ReportFrequency) * time.Second)
 	}
 }
