@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/jmoiron/sqlx"
 
@@ -40,9 +43,8 @@ func main() {
 
 	metricStorage := storage.New(conf.FileStoragePath, conf.StoreInternal, conf.Restore)
 
-	NewDBStorage := pg.NewDBStorage()
-
 	//подключаемся к базе
+	NewDBStorage := pg.NewDBStorage()
 	NewDBStorage.DB, errDB = sqlx.Connect("pgx", conf.DatabaseDSN)
 	if errDB != nil {
 		logger.Log.Error("Error not connect to db", "about ERR"+errDB.Error())
@@ -63,7 +65,27 @@ func main() {
 	}
 
 	hd := handlers.New(&metricStorage, NewDBStorage.DB, NewDBStorage, conf.HashKey, conf.CryptoKey)
-	if err := http.ListenAndServe(conf.RunAddr, hd.Router()); err != nil {
-		panic(err)
+	var srv = http.Server{
+		Addr:    conf.RunAddr,
+		Handler: hd.Router(),
 	}
+
+	idleConnsClosed := make(chan struct{})
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func() {
+		<-sigint
+		if err := srv.Shutdown(context.Background()); err != nil {
+			logger.Log.Error("HTTP server Shutdown:", "about ERR"+errDB.Error())
+		}
+		close(idleConnsClosed)
+	}()
+
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		logger.Log.Error("HTTP server ListenAndServe:", "about ERR"+errDB.Error())
+	}
+	<-idleConnsClosed
+	NewDBStorage.DB.Close()
+
+	fmt.Println("Server Shutdown gracefully")
 }

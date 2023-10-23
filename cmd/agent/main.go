@@ -4,7 +4,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"sync"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
@@ -23,6 +26,9 @@ func main() {
 	fmt.Printf("Build date:= %s\n", buildDate)
 	fmt.Printf("Build commit:= %s\n", buildCommit)
 
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -36,9 +42,6 @@ func main() {
 
 	metric := metrics.New(conf)
 
-	var wg sync.WaitGroup
-	//производим опрос/обновление метрик
-	wg.Add(1)
 	go func(ctx context.Context) {
 		for {
 			select {
@@ -49,7 +52,6 @@ func main() {
 			}
 		}
 	}(ctx)
-	wg.Add(1)
 
 	//производим отправку пачкой метрики
 	go func(ctx context.Context) {
@@ -66,7 +68,13 @@ func main() {
 	for w := 1; w <= conf.RateLimit; w++ {
 		go worker(w, jobs, conf)
 	}
-	wg.Wait()
+
+	<-sigint
+	cancel()
+
+	time.Sleep(time.Second * 2)
+
+	fmt.Println("Agent Shutdown gracefully")
 }
 
 func worker(id int, jobs <-chan models.Metrics, c config.ConfigAgent) {
