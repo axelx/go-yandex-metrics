@@ -1,7 +1,9 @@
 package service
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"strconv"
 )
 
@@ -19,4 +21,18 @@ func PrepareInt64Data(data string) (int64, error) {
 		return 0, errors.New("ошибка обработки параметра int64 data ")
 	}
 	return i, nil
+}
+
+func Int64ToPointerInt64(i int64) *int64 {
+	return &i
+}
+
+func Float64ToPointerFloat64(f float64) *float64 {
+	return &f
+}
+
+func StreamToByte(stream io.Reader) []byte {
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(stream)
+	return buf.Bytes()
 }
