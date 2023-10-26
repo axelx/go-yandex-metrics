@@ -120,13 +120,13 @@ func parseConfigJSON(configServerJSON string, c *ConfigServer) *ConfigServer {
 
 	bs, err := io.ReadAll(f)
 	if err != nil {
-		logger.Log.Error("config server", "io.ReadAll: "+err.Error())
+		logger.Error("config server", "io.ReadAll: "+err.Error())
 		return c
 	}
 	cs := ConfigServerJSON{}
 	err = json.Unmarshal(bs, &cs)
 	if err != nil {
-		logger.Log.Error("config server", "Ошибка Unmarshal"+err.Error())
+		logger.Error("config server", "Ошибка Unmarshal"+err.Error())
 		return c
 	}
 
@@ -134,7 +134,7 @@ func parseConfigJSON(configServerJSON string, c *ConfigServer) *ConfigServer {
 
 	si, err := strconv.Atoi(ss[0])
 	if err != nil {
-		logger.Log.Error("config server", "Ошибка конвертации  Atoi"+err.Error())
+		logger.Error("config server", "Ошибка конвертации  Atoi"+err.Error())
 		return c
 	}
 

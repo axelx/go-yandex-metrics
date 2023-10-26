@@ -75,13 +75,13 @@ func (h *handler) DBConnect() http.HandlerFunc {
 			res.WriteHeader(http.StatusOK)
 			_, err := res.Write([]byte(""))
 			if err != nil {
-				logger.Log.Error("Error res.Write(metricsJSON)", "DbConnect err: "+err.Error())
+				logger.Error("Error res.Write(metricsJSON)", "DbConnect err: "+err.Error())
 			}
 		} else {
 			res.WriteHeader(http.StatusInternalServerError)
 			_, err := res.Write([]byte(""))
 			if err != nil {
-				logger.Log.Error("Error res.Write(metricsJSON)", "DbConnect err: "+err.Error())
+				logger.Error("Error res.Write(metricsJSON)", "DbConnect err: "+err.Error())
 			}
 		}
 	}
@@ -152,12 +152,12 @@ func (h *handler) UpdatedMetric() http.HandlerFunc {
 
 		size, err := res.Write([]byte(valueM))
 		if err != nil {
-			logger.Log.Error("Error res.Write(metricsJSON)", "UpdatedMetric err: "+err.Error())
+			logger.Error("Error res.Write(metricsJSON)", "UpdatedMetric err: "+err.Error())
 		}
 
 		res.WriteHeader(http.StatusOK)
 
-		logger.Log.Info("sending HTTP response UpdateMetrics",
+		logger.Info("sending HTTP response UpdateMetrics",
 			"status: 200"+"size: "+strconv.Itoa(size))
 	}
 }
@@ -182,12 +182,12 @@ func (h *handler) GetMetric() http.HandlerFunc {
 
 		size, err := res.Write([]byte(metric))
 		if err != nil {
-			logger.Log.Error("Error res.Write(metricsJSON)", "GetMetric err: "+err.Error())
+			logger.Error("Error res.Write(metricsJSON)", "GetMetric err: "+err.Error())
 		}
 
 		res.WriteHeader(http.StatusOK)
 
-		logger.Log.Info("sending HTTP response UpdatedMetric",
+		logger.Info("sending HTTP response UpdatedMetric",
 			"status: 200"+"size: "+strconv.Itoa(size))
 	}
 }
@@ -200,20 +200,20 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 			dec := json.NewDecoder(req.Body)
 			err := dec.Decode(&metrics)
 			if err != nil {
-				logger.Log.Error("cannot decode request JSON body", err.Error())
+				logger.Error("cannot decode request JSON body", err.Error())
 				res.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		} else {
 			dataDecode, err := crypto.DecodeRSAAES(service.StreamToByte(req.Body), h.CryptoKey)
 			if err != nil {
-				logger.Log.Error("Cannot decode request JSON body with crypto private key", err.Error())
+				logger.Error("Cannot decode request JSON body with crypto private key", err.Error())
 				res.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 			err = json.Unmarshal(dataDecode, &metrics)
 			if err != nil {
-				logger.Log.Error("Cannot decode request JSON body with crypto private key", err.Error())
+				logger.Error("Cannot decode request JSON body with crypto private key", err.Error())
 				res.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -240,16 +240,16 @@ func (h *handler) UpdatedJSONMetric() http.HandlerFunc {
 
 		metricsJSON, err := json.Marshal(metricStorage)
 		if err != nil {
-			logger.Log.Error("Error json.Marshal(metricStorage)", "UpdatedJSONMetric err: "+err.Error())
+			logger.Error("Error json.Marshal(metricStorage)", "UpdatedJSONMetric err: "+err.Error())
 		}
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusOK)
 		size, err := res.Write(metricsJSON)
 		if err != nil {
-			logger.Log.Error("Error res.Write(metricsJSON)", "UpdatedJSONMetric err: "+err.Error())
+			logger.Error("Error res.Write(metricsJSON)", "UpdatedJSONMetric err: "+err.Error())
 		}
 
-		logger.Log.Info("sending HTTP response UpdatedMetric",
+		logger.Info("sending HTTP response UpdatedMetric",
 			"status: 200"+"size: "+strconv.Itoa(size))
 	}
 }
@@ -261,20 +261,20 @@ func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 			dec := json.NewDecoder(req.Body)
 			err := dec.Decode(&metrics)
 			if err != nil {
-				logger.Log.Error("UpdatedJSONMetrics: Cannot decode request JSON body", err.Error())
+				logger.Error("UpdatedJSONMetrics: Cannot decode request JSON body", err.Error())
 				res.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		} else {
 			dataDecode, err := crypto.DecodeRSAAES(service.StreamToByte(req.Body), h.CryptoKey)
 			if err != nil {
-				logger.Log.Error("UpdatedJSONMetrics: Cannot decode request JSON body with crypto private key", err.Error())
+				logger.Error("UpdatedJSONMetrics: Cannot decode request JSON body with crypto private key", err.Error())
 				res.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 			err = json.Unmarshal(dataDecode, &metrics)
 			if err != nil {
-				logger.Log.Error("UpdatedJSONMetrics: Cannot decode request JSON body with crypto private key", err.Error())
+				logger.Error("UpdatedJSONMetrics: Cannot decode request JSON body with crypto private key", err.Error())
 				res.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -307,7 +307,7 @@ func (h *handler) UpdatedJSONMetrics() http.HandlerFunc {
 		res.WriteHeader(http.StatusOK)
 		res.Write([]byte("{}"))
 
-		logger.Log.Info("sending HTTP response UpdatedMetric",
+		logger.Info("sending HTTP response UpdatedMetric",
 			"status: 200")
 	}
 }
@@ -318,7 +318,7 @@ func (h *handler) GetJSONMetric() http.HandlerFunc {
 		var metrics models.Metrics
 		dec := json.NewDecoder(req.Body)
 		if err := dec.Decode(&metrics); err != nil {
-			logger.Log.Debug("cannot decode request JSON body", err.Error())
+			logger.Debug("cannot decode request JSON body", err.Error())
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -336,13 +336,13 @@ func (h *handler) GetJSONMetric() http.HandlerFunc {
 
 		metricsJSON, err := json.Marshal(metric)
 		if err != nil {
-			logger.Log.Error("Error json marshal metrics", "GetJSONMetric err: "+err.Error())
+			logger.Error("Error json marshal metrics", "GetJSONMetric err: "+err.Error())
 		}
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusOK)
 		size, _ := res.Write(metricsJSON)
 
-		logger.Log.Info("sending HTTP response UpdatedMetric",
+		logger.Info("sending HTTP response UpdatedMetric",
 			"status: 200"+"size: "+strconv.Itoa(size))
 		fmt.Println(size)
 	}
@@ -364,7 +364,7 @@ func (h *handler) GetAllMetrics() http.HandlerFunc {
 		})
 		tmplSize := len(buf.Bytes())
 
-		logger.Log.Info("sending HTTP response GetAllMetrics",
+		logger.Info("sending HTTP response GetAllMetrics",
 			"status: 200"+"size: "+strconv.Itoa(tmplSize))
 	}
 }
@@ -425,7 +425,7 @@ func (h *handler) getMetrics(m keeper, MType models.MetricType, DB *sqlx.DB, DBP
 func (h *handler) checkHash(key, hashHeader string, data []byte) bool {
 	ha := hash.GetHashSHA256Base64(data, key)
 
-	logger.Log.Info("checkHash, hashHeader",
+	logger.Info("checkHash, hashHeader",
 		"calculated hash: "+ha+"key: "+key)
 
 	return hashHeader == ha

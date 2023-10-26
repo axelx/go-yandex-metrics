@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
-	"time"
 
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
@@ -38,14 +38,17 @@ func main() {
 	if err := logger.Initialize("info"); err != nil {
 		fmt.Println(err)
 	}
-	logger.Log.Info("Running server", "config"+conf.String())
+	logger.Info("Running server", "config"+conf.String())
 
 	metric := metrics.New(conf)
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
+				wg.Done()
 				return
 			default:
 				metric.Poll()
@@ -53,15 +56,19 @@ func main() {
 		}
 	}(ctx)
 
-	//производим отправку пачкой метрики
+	wg.Add(1)
+	//производим отправку метрик пачкой
 	go func(ctx context.Context) {
 		metric.ReportBatch(ctx)
+		wg.Done()
 	}(ctx)
 
 	jobs := make(chan models.Metrics, 30)
 
+	wg.Add(1)
 	go func(ctx context.Context) {
 		metric.Report(ctx, jobs)
+		wg.Done()
 	}(ctx)
 
 	// создаем воркеры которые будут отправлять метрики из канала jobs
@@ -71,8 +78,7 @@ func main() {
 
 	<-sigint
 	cancel()
-
-	time.Sleep(time.Second * 2)
+	wg.Wait()
 
 	fmt.Println("Agent Shutdown gracefully")
 }
@@ -80,7 +86,7 @@ func main() {
 func worker(id int, jobs <-chan models.Metrics, c config.ConfigAgent) {
 	for job := range jobs {
 		str := fmt.Sprintf("рабочий %d, Start запущена задача", id)
-		logger.Log.Info("Worker", "worker"+str)
+		logger.Info("Worker", "worker"+str)
 		metrics.SendRequestMetric(c, job)
 	}
 }

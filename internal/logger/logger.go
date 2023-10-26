@@ -7,27 +7,36 @@ import (
 	"go.uber.org/zap"
 )
 
-var Log = Logger{}
+var log = Logger{}
 
 type Logger struct {
-	Lg       *zap.Logger
+	lg       *zap.Logger
 	Title    string
 	Comment  string
 	Comments []string
 }
 
-func (l *Logger) Info(t, c string) {
-	l.Lg.Info(t,
+func Info(t, c string) {
+	if log.lg == nil {
+		panic("The logger is not initialized")
+	}
+	log.lg.Info(t,
 		zap.String("info", c),
 	)
 }
-func (l *Logger) Error(t, c string) {
-	l.Lg.Error(t,
+func Error(t, c string) {
+	if log.lg == nil {
+		panic("The logger is not initialized")
+	}
+	log.lg.Error(t,
 		zap.String("error", c),
 	)
 }
-func (l *Logger) Debug(t, c string) {
-	l.Lg.Debug(t,
+func Debug(t, c string) {
+	if log.lg == nil {
+		panic("The logger is not initialized")
+	}
+	log.lg.Debug(t,
 		zap.String("debug", c),
 	)
 }
@@ -44,7 +53,7 @@ func Initialize(level string) error {
 	if err != nil {
 		return err
 	}
-	Log.Lg = zl
+	log.lg = zl
 	return nil
 }
 
@@ -55,7 +64,7 @@ func RequestLogger() func(http.Handler) http.Handler {
 			start := time.Now()
 			h.ServeHTTP(w, r)
 			duration := time.Since(start)
-			Log.Lg.Info("got incoming HTTP request (middleware)",
+			log.lg.Info("got incoming HTTP request (middleware)",
 				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
 				zap.String("duration", duration.String()),

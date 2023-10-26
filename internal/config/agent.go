@@ -155,7 +155,7 @@ func parseConfigAgentJSON(configJSON string, c *ConfigAgentFlag) *ConfigAgentFla
 
 	bs, err := io.ReadAll(f)
 	if err != nil {
-		logger.Log.Error("config agent", "io.ReadAll: "+err.Error())
+		logger.Error("config agent", "io.ReadAll: "+err.Error())
 		return c
 	}
 	fmt.Println("io.ReadAll(f)", string(bs))
@@ -163,20 +163,20 @@ func parseConfigAgentJSON(configJSON string, c *ConfigAgentFlag) *ConfigAgentFla
 	cs := ConfigAgentJSON{}
 	err = json.Unmarshal(bs, &cs)
 	if err != nil {
-		logger.Log.Error("config agent", "Ошибка UnmarshalЖ"+err.Error())
+		logger.Error("config agent", "Ошибка UnmarshalЖ"+err.Error())
 		return c
 	}
 
 	rf := strings.Split(cs.ReportFrequency, "s")
 	rfi, err := strconv.Atoi(rf[0])
 	if err != nil {
-		logger.Log.Error("config agent", "Ошибка конвертации  Atoi rf"+err.Error())
+		logger.Error("config agent", "Ошибка конвертации  Atoi rf"+err.Error())
 		return c
 	}
 	pf := strings.Split(cs.PollFrequency, "s")
 	pfi, err := strconv.Atoi(pf[0])
 	if err != nil {
-		logger.Log.Error("config agent", "Ошибка конвертации  Atoi pf"+err.Error())
+		logger.Error("config agent", "Ошибка конвертации  Atoi pf"+err.Error())
 		return c
 	}
 

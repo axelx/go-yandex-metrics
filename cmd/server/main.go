@@ -36,7 +36,7 @@ func main() {
 	if err := logger.Initialize(conf.LogLevel); err != nil {
 		fmt.Println(err)
 	}
-	logger.Log.Info("Running server", "address"+conf.String())
+	logger.Info("Running server", "address"+conf.String())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -47,7 +47,7 @@ func main() {
 	NewDBStorage := pg.NewDBStorage()
 	NewDBStorage.DB, errDB = sqlx.Connect("pgx", conf.DatabaseDSN)
 	if errDB != nil {
-		logger.Log.Error("Error not connect to db", "about ERR"+errDB.Error())
+		logger.Error("Error not connect to db", "about ERR"+errDB.Error())
 		go metricStorage.UpdateFile(ctx)
 		if conf.FileStoragePath != "" {
 			metricStorage.RestoreFromFile()
@@ -76,13 +76,13 @@ func main() {
 	go func() {
 		<-sigint
 		if err := srv.Shutdown(context.Background()); err != nil {
-			logger.Log.Error("HTTP server Shutdown:", "about ERR"+errDB.Error())
+			logger.Error("HTTP server Shutdown:", "about ERR"+errDB.Error())
 		}
 		close(idleConnsClosed)
 	}()
 
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		logger.Log.Error("HTTP server ListenAndServe:", "about ERR"+errDB.Error())
+		logger.Error("HTTP server ListenAndServe:", "about ERR"+errDB.Error())
 	}
 	<-idleConnsClosed
 	NewDBStorage.DB.Close()
