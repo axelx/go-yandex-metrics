@@ -60,7 +60,7 @@ func GetIP() string {
 		return ""
 	}
 
-	resIp := ""
+	resIP := ""
 
 	for _, iface := range interfaces {
 		addrs, err := iface.Addrs()
@@ -72,12 +72,12 @@ func GetIP() string {
 			ipNet, ok := addr.(*net.IPNet)
 			if ok && !ipNet.IP.IsLoopback() {
 				if ipNet.IP.To4() != nil {
-					resIp = ipNet.IP.String()
+					resIP = ipNet.IP.String()
 				}
 			}
 		}
 	}
-	return resIp
+	return resIP
 }
 
 // ISinTrustedNetwork - проверяем находится ли IP адрес в диапазоне доверенной сети
