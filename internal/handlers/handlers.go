@@ -35,21 +35,23 @@ type keeper interface {
 }
 
 type handler struct {
-	memStorage keeper
-	DB         *sqlx.DB
-	DBPostgres *pg.PgStorage
-	HashKey    string
-	CryptoKey  string
+	memStorage    keeper
+	DB            *sqlx.DB
+	DBPostgres    *pg.PgStorage
+	HashKey       string
+	CryptoKey     string
+	TrustedSubnet string
 }
 
 // handler.New создаем новый обработчик
-func New(k keeper, db *sqlx.DB, NewDBStorage *pg.PgStorage, hashKey, cryptoKey string) handler {
+func New(k keeper, db *sqlx.DB, NewDBStorage *pg.PgStorage, hashKey, cryptoKey, trustedsubnet string) handler {
 	return handler{
-		memStorage: k,
-		DB:         db,
-		DBPostgres: NewDBStorage,
-		HashKey:    hashKey,
-		CryptoKey:  cryptoKey,
+		memStorage:    k,
+		DB:            db,
+		DBPostgres:    NewDBStorage,
+		HashKey:       hashKey,
+		CryptoKey:     cryptoKey,
+		TrustedSubnet: trustedsubnet,
 	}
 }
 
@@ -61,7 +63,7 @@ func (h *handler) Router() chi.Router {
 	r.Post("/update/{typeM}/{nameM}/{valueM}", h.UpdatedMetric())
 	r.Get("/value/{typeM}/{nameM}", h.GetMetric())
 	r.Get("/", mgzip.GzipHandle(h.GetAllMetrics()))
-	r.Post("/update/", GzipMiddleware(h.UpdatedJSONMetric()))
+	r.Post("/update/", XrealIPMiddleware(GzipMiddleware(h.UpdatedJSONMetric()), h.TrustedSubnet))
 	r.Post("/value/", GzipMiddleware(h.GetJSONMetric()))
 	r.Get("/ping", h.DBConnect())
 	r.Post("/updates/", GzipMiddleware(h.UpdatedJSONMetrics()))
@@ -105,6 +107,22 @@ func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			}
 			req.Body = cr
 			defer cr.Close()
+		}
+		h.ServeHTTP(res, req)
+	}
+}
+
+func XrealIPMiddleware(h http.HandlerFunc, trustedsubnet string) http.HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) {
+		xrealip := req.Header.Get("X-Real-IP")
+
+		if trustedsubnet != "" {
+			result := service.ISinTrustedNetwork(xrealip, trustedsubnet)
+
+			if !result {
+				res.WriteHeader(http.StatusForbidden)
+				return
+			}
 		}
 		h.ServeHTTP(res, req)
 	}

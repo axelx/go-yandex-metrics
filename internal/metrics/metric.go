@@ -201,6 +201,7 @@ func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("X-Real-IP", service.GetIP())
 	if c.HashKey != "" {
 		req.Header.Set("HashSHA256", hash.GetHashSHA256Base64(metricsJSON, c.HashKey))
 	}
