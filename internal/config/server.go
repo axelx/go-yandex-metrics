@@ -21,12 +21,15 @@ type ConfigServer struct {
 	DatabaseDSN     string
 	HashKey         string
 	CryptoKey       string
+	TrustedSubnet   string
 }
 
 // String нужен для чтения всех параметров конфига
 func (c *ConfigServer) String() string {
-	return fmt.Sprintf("RunAddr: %s, LogLevel: %s, StoreInternal: %v, FileStoragePath: %s, Restore: %v, DatabaseDSN: %s, HashKey: %s, CryptoKey: %s",
-		c.RunAddr, c.LogLevel, c.StoreInternal, c.FileStoragePath, c.Restore, c.DatabaseDSN, c.HashKey, c.CryptoKey)
+	return fmt.Sprintf("RunAddr: %s, LogLevel: %s, StoreInternal: %v, FileStoragePath: %s, Restore: %v,"+
+		" DatabaseDSN: %s, HashKey: %s, CryptoKey: %s, TrustedSubnet: %s",
+		c.RunAddr, c.LogLevel, c.StoreInternal, c.FileStoragePath, c.Restore,
+		c.DatabaseDSN, c.HashKey, c.CryptoKey, c.TrustedSubnet)
 }
 
 // NewConfigServer создаём конфигурацию сервера для получения и сохранения метрик
@@ -40,6 +43,7 @@ func NewConfigServer() *ConfigServer {
 		DatabaseDSN:     "",
 		HashKey:         "",
 		CryptoKey:       "",
+		TrustedSubnet:   "",
 	}
 	parseFlagsServer(&conf)
 	serverConfigDefaultValue(&conf)
@@ -60,6 +64,7 @@ func parseFlagsServer(c *ConfigServer) {
 	flag.StringVar(&c.CryptoKey, "crypto-key", "", "location privat key")
 	flag.StringVar(&configServerJSON, "c", "", "config json")
 	flag.StringVar(&configServerJSON, "config", "", "config json")
+	flag.StringVar(&c.TrustedSubnet, "t", "", "trusted subnet")
 
 	flag.Parse()
 
@@ -94,6 +99,9 @@ func parseFlagsServer(c *ConfigServer) {
 	if envConfigJSON := os.Getenv("CONFIG"); envConfigJSON != "" {
 		configServerJSON = envConfigJSON
 	}
+	if envTrustedSubnet := os.Getenv("TRUSTED_SUBNET"); envTrustedSubnet != "" {
+		c.TrustedSubnet = envTrustedSubnet
+	}
 
 	parseConfigJSON(configServerJSON, c)
 
@@ -111,6 +119,7 @@ func parseConfigJSON(configServerJSON string, c *ConfigServer) *ConfigServer {
 		Restore           bool   `json:"restore"`
 		DatabaseDSN       string `json:"database_dsn"`
 		CryptoKey         string `json:"crypto_key"`
+		TrustedSubnet     string `json:"trusted_subnet"`
 	}
 	f, err := os.Open(configServerJSON)
 	if err != nil {
@@ -155,6 +164,9 @@ func parseConfigJSON(configServerJSON string, c *ConfigServer) *ConfigServer {
 	}
 	if c.CryptoKey == "" {
 		c.CryptoKey = cs.CryptoKey
+	}
+	if c.TrustedSubnet == "" {
+		c.TrustedSubnet = cs.TrustedSubnet
 	}
 
 	return c

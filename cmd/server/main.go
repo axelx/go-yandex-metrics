@@ -64,7 +64,7 @@ func main() {
 		}
 	}
 
-	hd := handlers.New(&metricStorage, NewDBStorage.DB, NewDBStorage, conf.HashKey, conf.CryptoKey)
+	hd := handlers.New(&metricStorage, NewDBStorage.DB, NewDBStorage, conf.HashKey, conf.CryptoKey, conf.TrustedSubnet)
 	var srv = http.Server{
 		Addr:    conf.RunAddr,
 		Handler: hd.Router(),
