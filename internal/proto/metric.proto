@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package demo;
+
+option go_package = "github.com/axelx/go-yandex-metrics";
+
+
+//    type MetricType string
+//
+//    var MetricGauge MetricType = "gauge"
+//    var MetricCounter MetricType = "counter"
+//
+//// Metrics структура метрики. Нужна для отображения метрики в формате json
+//    type Metrics struct {
+//      ID    string     `json:"id"`              // имя метрики
+//      MType MetricType `json:"type"`            // параметр, принимающий значение gauge или counter
+//      Delta *int64     `json:"delta,omitempty"` // значение метрики в случае передачи counter
+//      Value *float64   `json:"value,omitempty"` // значение метрики в случае передачи gauge
+//    }
+
+
+message Metric {
+  string ID = 1;     // имя метрики
+  string MType = 2;  // параметр, принимающий значение gauge или counter
+  sint64 Delta = 3;  // значение метрики в случае передачи counter
+  double Value = 4;  // значение метрики в случае передачи gauge
+//  enum Sex {
+//    UNSPECIFIED = 0;
+//    MALE = 1;
+//    FEMALE = 2;
+//  }
+//  Sex sex = 2;      // пол
+//  string email = 3; // email
+
+//!!!!!!!!!
+}
+
+//message AddUserRequest {
+//  User user = 1;
+//}
+//
+//message AddUserResponse {
+//  string error = 1; // ошибка
+//}
+//
+//message ListUsersRequest {
+//  int32 offset = 1; // смещение выборки
+//  int32 limit = 2;  // количество элементов
+//}
+//
+//message ListUsersResponse {
+//  int32 count = 1;            // общее количество пользователей
+//  repeated string emails = 2; // список email
+//}
+//
+//message GetUserRequest {
+//  string email = 1;
+//}
+//
+//message GetUserResponse {
+//  User   user = 1;
+//  string error = 2;
+//}
+//
+//message DelUserRequest {
+//  string email = 1;
+//}
+//
+//message DelUserResponse {
+//  string error = 1;
+//}
+
+
+message GetMetricRequest {
+  string ID = 1;
+  string MType = 2;
+}
+message GetMetricResponse {
+  Metric metric = 1;
+}
+
+message UpdateMetricRequest {
+  Metric metric = 1;
+}
+
+message UpdateMetricResponse {
+  Metric metric = 1;
+}
+
+message UpdateMetricsRequest {
+  repeated Metric metric = 1;
+}
+
+message UpdateMetricsResponse {
+  repeated Metric metric = 1;
+}
+
+service Metrics {
+  rpc GetMetric(GetMetricRequest) returns (GetMetricResponse);
+  rpc UpdateMetric(UpdateMetricRequest) returns (UpdateMetricResponse);
+  rpc UpdateMetrics(UpdateMetricsRequest) returns (UpdateMetricsResponse);
+
+//  rpc AddUser(AddUserRequest) returns (AddUserResponse);
+//  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+//  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+//  rpc DelUser(DelUserRequest) returns (DelUserResponse);
+}
+
+
+
+
+// The greeting service definition.
+//service Greeter {
+//  // Sends a greeting
+//  rpc SayHello (HelloRequest) returns (HelloReply) {}
+//  // Sends another greeting
+//  rpc SayHelloAgain (HelloRequest) returns (HelloReply) {}
+//}
+//
+//// The request message containing the user's name.
+//message HelloRequest {
+//  string name = 1;
+//}
+//
+//// The response message containing the greetings
+//message HelloReply {
+//  string message = 1;
+//}

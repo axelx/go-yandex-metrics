@@ -35,6 +35,17 @@ func Float64ToPointerFloat64(f float64) *float64 {
 	return &f
 }
 
+func UnPointer[K int64 | float64](val *K) K {
+	if val == nil {
+		return 0
+	}
+	return *val
+}
+
+func ToPointer[K int64 | float64](val K) *K {
+	return &val
+}
+
 // StringToInt
 func StringToInt(strVar string) int {
 	intVar, err := strconv.Atoi(strVar)

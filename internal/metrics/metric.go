@@ -2,13 +2,9 @@
 package metrics
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
-	"encoding/json"
 	"errors"
 	"math/rand"
-	"net/http"
 	"runtime"
 	"time"
 
@@ -16,8 +12,6 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 
 	"github.com/axelx/go-yandex-metrics/internal/config"
-	"github.com/axelx/go-yandex-metrics/internal/crypto"
-	"github.com/axelx/go-yandex-metrics/internal/hash"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/models"
 	"github.com/axelx/go-yandex-metrics/internal/service"
@@ -39,6 +33,48 @@ func New(conf config.ConfigAgent) Metric {
 var (
 	ErrDialUp = errors.New("dial up connection")
 )
+
+// ReportGRPC отправка группы метрик
+func (m *Metric) ReportGRPC(ctx context.Context) {
+	for {
+		for _, interval := range m.conf.RetryIntervals {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				err := sendRequestMetricGRPC(ctx, m.conf.AddrGRPC, m.data)
+				if err == nil {
+					break
+				}
+				if errors.Is(err, ErrDialUp) {
+					time.Sleep(interval)
+				}
+			}
+		}
+		time.Sleep(time.Duration(m.conf.ReportFrequency) * time.Second)
+	}
+}
+
+// ReportGRPC отправка группы метрик
+func (m *Metric) ReportBatchGRPC(ctx context.Context) {
+	for {
+		for _, interval := range m.conf.RetryIntervals {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				err := sendRequestMetricsGRPC(ctx, m.conf.AddrGRPC, m.data)
+				if err == nil {
+					break
+				}
+				if errors.Is(err, ErrDialUp) {
+					time.Sleep(interval)
+				}
+			}
+		}
+		time.Sleep(time.Duration(m.conf.ReportFrequency) * time.Second)
+	}
+}
 
 // ReportBatch отправка группы метрик
 func (m *Metric) ReportBatch(ctx context.Context) {
@@ -142,76 +178,4 @@ func (m *Metric) getMetrics(me *runtime.MemStats, PollCount int, pcGopsutil, mGo
 	m.data = append(m.data, models.Metrics{ID: "PauseTotalNs", MType: "gauge", Value: service.Float64ToPointerFloat64(float64(me.PauseTotalNs))})
 	m.data = append(m.data, models.Metrics{ID: "OtherSys", MType: "gauge", Value: service.Float64ToPointerFloat64(float64(me.OtherSys))})
 	m.data = append(m.data, models.Metrics{ID: "TotalAlloc", MType: "gauge", Value: service.Float64ToPointerFloat64(float64(me.TotalAlloc))})
-}
-
-func sendRequestSliceMetrics(c config.ConfigAgent, metrics []models.Metrics) error {
-	metricsJSON, err := json.Marshal(metrics)
-	if err != nil {
-		return err
-	}
-	if c.CryptoKey != "" {
-		metricsJSON, err = crypto.EncodeRSAAES(metricsJSON, c.CryptoKey)
-		if err != nil {
-			return err
-		}
-	}
-	err = sendRequest("updates/", c, metricsJSON)
-	if err != nil {
-		logger.Error("Error sendRequest", "about err: "+err.Error())
-		return err
-	}
-	return nil
-}
-
-// SendRequestMetric отправка метрик по указанному в кофиге урлу
-func SendRequestMetric(c config.ConfigAgent, metric models.Metrics) error {
-	metricJSON, err := json.Marshal(metric)
-	if err != nil {
-		logger.Error("Error SendRequestMetric", "about err: "+err.Error())
-		return err
-	}
-	if c.CryptoKey != "" {
-		metricJSON, err = crypto.EncodeRSAAES(metricJSON, c.CryptoKey)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = sendRequest("update/", c, metricJSON)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func sendRequest(url string, c config.ConfigAgent, metricsJSON []byte) error {
-	buf := bytes.NewBuffer(nil)
-	zb := gzip.NewWriter(buf)
-	_, err := zb.Write([]byte(metricsJSON))
-	if err != nil {
-		logger.Error("Error zb.Write([]byte(metricsJSON)", "sendRequest; about err: "+err.Error())
-		return err
-	}
-	zb.Close()
-
-	req, err := http.NewRequest("POST", c.BaseURL+url, buf)
-	if err != nil {
-		logger.Error("Error create request", "sendRequest; about err: "+err.Error())
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "gzip")
-	req.Header.Set("X-Real-IP", service.GetIP())
-	if c.HashKey != "" {
-		req.Header.Set("HashSHA256", hash.GetHashSHA256Base64(metricsJSON, c.HashKey))
-	}
-	resp, err := c.Client.Do(req)
-	resp.Body.Close()
-
-	if err != nil {
-		logger.Error("Error reporting metrics:", "metricJSON; about err: "+err.Error()+
-			"about metricJSON: "+string(metricsJSON))
-		return ErrDialUp
-	}
-	return nil
 }
