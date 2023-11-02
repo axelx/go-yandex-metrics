@@ -3,6 +3,7 @@ package metrics
 
 import (
 	"context"
+	"google.golang.org/grpc/encoding/gzip"
 	"log"
 	"time"
 
@@ -86,7 +87,8 @@ func getM(ctx context.Context, c pb.MetricsClient, in *pb.GetMetricRequest) erro
 }
 
 func updateM(ctx context.Context, c pb.MetricsClient, in *pb.UpdateMetricRequest) error {
-	r, err := c.UpdateMetric(ctx, in)
+	compressor := grpc.UseCompressor(gzip.Name)
+	r, err := c.UpdateMetric(ctx, in, compressor)
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 		return err
@@ -96,7 +98,8 @@ func updateM(ctx context.Context, c pb.MetricsClient, in *pb.UpdateMetricRequest
 }
 
 func updateMS(ctx context.Context, c pb.MetricsClient, in *pb.UpdateMetricsRequest) error {
-	_, err := c.UpdateMetrics(ctx, in)
+	compressor := grpc.UseCompressor(gzip.Name)
+	_, err := c.UpdateMetrics(ctx, in, compressor)
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 		return err

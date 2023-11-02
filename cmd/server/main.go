@@ -15,6 +15,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"google.golang.org/grpc"
+	_ "google.golang.org/grpc/encoding/gzip"
 
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/handlers"

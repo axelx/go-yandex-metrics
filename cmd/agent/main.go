@@ -56,21 +56,21 @@ func main() {
 		}
 	}(ctx)
 
-	//производим отправку метрик пачкой gRPC
+	//производим отправку метрик пачкой, gRPC
 	wg.Add(1)
 	go func(ctx context.Context) {
 		metric.ReportBatchGRPC(ctx)
 		wg.Done()
 	}(ctx)
 
-	//производим отправку метрик gRPC
+	//производим отправку метрик, gRPC
 	wg.Add(1)
 	go func(ctx context.Context) {
 		metric.ReportGRPC(ctx)
 		wg.Done()
 	}(ctx)
 
-	//производим отправку метрик пачкой
+	//производим отправку метрик пачкой, http
 	wg.Add(1)
 	go func(ctx context.Context) {
 		metric.ReportBatch(ctx)
