@@ -5,17 +5,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/jmoiron/sqlx"
+	"google.golang.org/grpc"
+	_ "google.golang.org/grpc/encoding/gzip"
 
 	"github.com/axelx/go-yandex-metrics/internal/config"
 	"github.com/axelx/go-yandex-metrics/internal/handlers"
 	"github.com/axelx/go-yandex-metrics/internal/logger"
 	"github.com/axelx/go-yandex-metrics/internal/pg"
+	"github.com/axelx/go-yandex-metrics/internal/proto"
 	"github.com/axelx/go-yandex-metrics/internal/storage"
 )
 
@@ -64,7 +70,12 @@ func main() {
 		}
 	}
 
-	hd := handlers.New(&metricStorage, NewDBStorage.DB, NewDBStorage, conf.HashKey, conf.CryptoKey)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	gRPCsrv := handlers.PBNew(NewDBStorage.DB, NewDBStorage, ":50051")
+	go grpcServer(gRPCsrv)
+
+	hd := handlers.New(&metricStorage, NewDBStorage.DB, NewDBStorage, conf.HashKey, conf.CryptoKey, conf.TrustedSubnet)
 	var srv = http.Server{
 		Addr:    conf.RunAddr,
 		Handler: hd.Router(),
@@ -84,8 +95,24 @@ func main() {
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		logger.Error("HTTP server ListenAndServe:", "about ERR"+errDB.Error())
 	}
+
 	<-idleConnsClosed
 	NewDBStorage.DB.Close()
+	wg.Done()
+	wg.Wait()
 
 	fmt.Println("Server Shutdown gracefully")
+}
+
+func grpcServer(gsrv handlers.ProtoHandler) {
+	lis, err := net.Listen("tcp", gsrv.Addr)
+	if err != nil {
+		logger.Error("gRPC failed to listen:", "about ERR"+errDB.Error())
+	}
+	s := grpc.NewServer()
+	go_yandex_metrics.RegisterMetricsServer(s, &gsrv)
+	log.Printf("server listening at %v", lis.Addr())
+	if err := s.Serve(lis); err != nil {
+		logger.Error("gRPC failed to serve:", "about ERR"+errDB.Error())
+	}
 }

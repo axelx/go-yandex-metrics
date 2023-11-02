@@ -32,6 +32,7 @@ type ConfigAgent struct {
 	HashKey         string
 	RateLimit       int
 	CryptoKey       string
+	AddrGRPC        string
 }
 
 func (c *ConfigAgent) String() string {
@@ -67,6 +68,7 @@ func NewConfigAgent() ConfigAgent {
 		HashKey:         "",
 		RateLimit:       1,
 		CryptoKey:       "",
+		AddrGRPC:        "localhost:50051",
 	}
 
 	if cf.ServerAddr != "" {
