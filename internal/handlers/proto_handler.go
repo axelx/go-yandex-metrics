@@ -57,19 +57,23 @@ func (s *ProtoHandler) UpdateMetric(ctx context.Context, in *pb.UpdateMetricRequ
 	var response pb.UpdateMetricResponse
 
 	mType := models.MetricType(in.Metric.MType)
-	metric, err := s.DBPostgres.GetDBMetric(mType, in.Metric.ID)
-	if err != nil {
-		logger.Error("gRPC UpdateMetric, s.DBPostgres.GetDBMetric:", "about ERR"+err.Error())
-	}
 
-	err = s.DBPostgres.SetDBMetric(
+	err := s.DBPostgres.SetDBMetric(
 		mType,
 		in.Metric.ID,
 		service.Float64ToPointerFloat64(in.Metric.Value),
 		service.Int64ToPointerInt64(in.Metric.Delta),
 	)
+	if err != nil {
+		logger.Error("gRPC UpdateMetric, s.DBPostgres.SetDBMetric:", "about ERR"+err.Error())
+		return nil, err
+	}
 
-	metric, err = s.DBPostgres.GetDBMetric(mType, in.Metric.ID)
+	metric, err := s.DBPostgres.GetDBMetric(mType, in.Metric.ID)
+	if err != nil {
+		logger.Error("gRPC UpdateMetric, s.DBPostgres.GetDBMetric:", "about ERR"+err.Error())
+		return nil, err
+	}
 
 	d := service.UnPointer(metric.Delta)
 	v := service.UnPointer(metric.Value)

@@ -27,7 +27,7 @@ func sendRequestMetricGRPC(ctx context.Context, addr string, metrics []models.Me
 	c := pb.NewMetricsClient(conn)
 
 	// Contact the server and print out its response.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
 	for _, m := range metrics {
@@ -54,7 +54,7 @@ func sendRequestMetricsGRPC(ctx context.Context, addr string, metrics []models.M
 	defer conn.Close()
 	c := pb.NewMetricsClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
 	ms := []*pb.Metric{}
